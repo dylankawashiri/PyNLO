@@ -1,0 +1,11 @@
+numpy
+scipy
+matplotlib
+pandas
+pydantic
+ruff
+tqdm
+pyfftw
+pyyaml
+ipykernel
+cupy-cuda13x

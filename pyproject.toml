@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools >= 65.5.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CuPyNLO"
+description = "CuPy Nonlinear Optics"
+readme = "README.md"
+license = {text = "proprietary"}
+requires-python = ">=3.10"
+urls = {source = 'https://github.com/dylankawashiri/pynlo'}
+dynamic = ["version"]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "scipy",
+    "tqdm",
+    "cupy-cuda13x"
+]
+
+[tool.setuptools_scm]
+version_file = "src/CuPyNLO/_version.py"
+
+[tool.jupytext]
+formats = "ipynb,py:percent"

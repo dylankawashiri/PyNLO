@@ -63,3 +63,6 @@ dist/*
 *.tiff
 *.pdf
 *.doc
+
+CuPyNLO.egg-info/
+_verison.py
