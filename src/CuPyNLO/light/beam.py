@@ -1,29 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 11 10:08:31 2015
-This file is part of pyNLO.
+from __future__ import annotations
 
-    pyNLO is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    pyNLO is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
-    
-@author: ycasg
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from CuPyNLO.light.PulseBase import Pulse
+from CuPyNLO.media.crystals.CrystalContainer import Crystal
 
 import numpy as np
-from scipy import constants, optimize
+from scipy import constants, optimize  # type: ignore[import]
 
 class OneDBeam:
     """ Simple Gaussian beam class for propagation and calculating field 
@@ -40,44 +21,49 @@ class OneDBeam:
     _crystal_ID = None
     _n_s_cache  = None
     
-    def __init__(self, waist_meters = 1.0, this_pulse = None, axis = None):
+    def __init__(self, waist_meters: float = 1.0, this_pulse: Pulse | None = None, axis: str | None = None):
         """ Initialize class instance. From waist, confocal parameter is derived.
             A Pulse class is input, and it is assumed that each color focuses to
             the same waist size at the same point. From this, the (chromatic) confocal 
             parameter b(lambda) is calculated"""
-        self._lambda0 = this_pulse.wl_mks
+        self._lambda0 = this_pulse.wl_mks if this_pulse is not None else None
         self.axis   = axis
         self.set_w0( waist_meters )
 
-    def calc_confocal(self, n_s = 1.0):
+        self.waist = None
+        self._lambda0 = None
+
+    def calc_confocal(self, n_s: float = 1.0) -> float:
+        if self.waist is None or self._lambda0 is None:
+            raise ValueError("Waist and/or lambda0 is undefined")
         return (2.0*np.pi) * self.waist**2 * (n_s/self._lambda0)  
       
-    def set_w0(self, w0):
+    def set_w0(self, w0: float):
         self._w0 = w0
         
-    def _get_w0(self):
+    def _get_w0(self) -> float:
         return self._w0
         
     waist  = property(_get_w0)
     
-    def calculate_waist(self, z, n_s = 1.0):
+    def calculate_waist(self, z: float, n_s: float = 1.0) -> float:
         """ Calculate the beam waist a distance z from the focus. The expression
             is :
                 w(z) = w0 (1+ ( 2z/b)**2 )**1/2 """
         b = self.calc_confocal(n_s)
         return self.waist * np.sqrt(1. + ( 2.0* z / b)**2 )
         
-    def calculate_zR(self, n_s = 1.0):
+    def calculate_zR(self, n_s: float = 1.0) -> float:
         """ Calculate Rayleigh range, accounting for index of refraction. """
         return self.calc_confocal(n_s) / 2.0
         
-    def calculate_R(self, z, n_s = 1.0):
+    def calculate_R(self, z: float, n_s: float = 1.0) -> float:
         """ Calculate beam curvature. :
             R(z) = z * [ 1 +  (z_R/ z)**2 ]"""
         z_r = self.calculate_zR(n_s)
         return z * (1 + (z_r/z)**2)
         
-    def calculate_gouy_phase(self, z, n_s):
+    def calculate_gouy_phase(self, z: float, n_s: float) -> float:
         """ Return the Gouy phase shift due to focusing a distance z in a crystal,
             where it is assumed that the focus is at crystal_length / 2.0. Return
             is exp(i psi), as in eq 37 in Siegman Ch 17.4, where A ~ exp(-ikz + i psi)."""
@@ -85,7 +71,7 @@ class OneDBeam:
         psi_gouy = np.arctan2(z, z_r )
         return np.exp(1j*psi_gouy)
         
-    def _rtP_to_a(self, n_s, z, waist = None):
+    def _rtP_to_a(self, n_s: float, z: float, waist: float | None = None):
         """ Calculate conversion constant from electric field to average power from
             indices of refraction: A = P_to_a * rtP """
         if waist is None:
@@ -93,12 +79,12 @@ class OneDBeam:
         return 1.0 / np.sqrt( np.pi * waist**2 * n_s * \
                         constants.epsilon_0 * constants.speed_of_light)   
                          
-    def rtP_to_a(self, n_s, z = None):
+    def rtP_to_a(self, n_s: float, z: float):
         """ Calculate conversion constant from electric field to average power from
             pulse and crystal class instances: A ** 2 = rtP_to_a**2 * P """
         return self._rtP_to_a(n_s, z, self.waist)
         
-    def rtP_to_a_2(self, pulse_instance, crystal_instance, z = None, waist = None):
+    def rtP_to_a_2(self, pulse_instance: Pulse, crystal_instance: Crystal, z: float, waist: float):
         """ Calculate conversion constant from electric field to average power from
             pulse and crystal class instances: A ** 2 = rtP_to_a**2 * P """
         n_s = self.get_n_in_crystal(pulse_instance, crystal_instance)
@@ -155,16 +141,18 @@ class OneDBeam:
         k1 = self.get_k_in_crystal(this_pulse, crystal_instance)
         k2 = othr_beam.get_k_in_crystal(othr_pulse, crystal_instance)
 
-        obj_fn = lambda zr1: -1.0*np.sum((4*k1*k2*zr1*abs(zr2) *\
-            np.arctan( ((k1 - k2)*L)/(k2*zr1 + k1*abs(zr2)))/\
-            ((k1 - k2)*(k2*zr1 + k1*abs(zr2)))))
+        def obj_fn(zr1):
+            return -1.0*np.sum((4*k1*k2*zr1*abs(zr2) *\
+                    np.arctan( ((k1 - k2)*L)/(k2*zr1 + k1*abs(zr2)))/\
+                    ((k1 - k2)*(k2*zr1 + k1*abs(zr2)))))
+        
         
         result = optimize.minimize(obj_fn, zr2,  method = 'Powell')
         # From w0**2 = b lambda/ 2 pi n:
         w0_out = np.sqrt( 2.0 *result.x*self._lambda0/(2.0*np.pi*n1))
         return w0_out
 
-    def get_n_in_crystal(self, pulse_instance, crystal_instance):
+    def get_n_in_crystal(self, pulse_instance: Pulse, crystal_instance: Crystal):
         return crystal_instance.get_pulse_n(pulse_instance, self.axis)
         
     def get_k_in_crystal(self, pulse_instance, crystal_instance):

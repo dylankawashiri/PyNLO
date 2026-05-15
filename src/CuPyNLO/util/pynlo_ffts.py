@@ -21,15 +21,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 from numpy import fft
 
-def FFT_t(A,ax=0):
+def FFT_t(A: np.ndarray, ax: int = 0):
     return fft.ifftshift(fft.ifft(fft.fftshift(A,axes=(ax,)),axis=ax),axes=(ax,))
-def IFFT_t(A,ax=0):
+def IFFT_t(A: np.ndarray, ax: int = 0):
     return fft.ifftshift(fft.fft(fft.fftshift(A,axes=(ax,)),axis=ax),axes=(ax,)) 
 
-# these last two are defined in laserFOAM but never used
-def FFT_x(self,A):
-        return fft.ifftshift(fft.fft(fft.fftshift(A)))
-def IFFT_x(self,A):
-        return fft.ifftshift(fft.ifft(fft.fftshift(A)))

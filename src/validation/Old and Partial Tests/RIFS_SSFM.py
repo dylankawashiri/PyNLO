@@ -40,7 +40,7 @@ D = 4 # ps / km / nm
 beta2 = -2 * np.pi * fiber1.c / centerwl**2 * D
 beta3 = 0.1
 betas = [beta2, beta3]
-print betas
+print(betas)
 P0 = abs(betas[0] * 1e-3) / gamma / T0**2
 init = Pulse(n = 2**14)
 init.gen_sech(P0, T0, centerwl, time_window=25)

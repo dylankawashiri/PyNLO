@@ -28,7 +28,7 @@ from CuPyNLO.media.crystals.CrystalContainer import Crystal
 
 
 class AgGaSe2(Crystal):
-    def __init__(self, theta = 0.0, **params):
+    def __init__(self, theta: float = 0.0, **params):
         """ Load AgGaSe2 data. theta : crystal angle (radians)"""
         Crystal.__init__(self, params)
         self.mode  = 'BPM'
@@ -60,10 +60,12 @@ class AgGaSe2(Crystal):
 
         self.theta = theta
         self.n2    = 35e-15 / 100**2 # from Nikogosyan, originally given in cm^2 / W
-        self.deff  = 28.5e-12 # from SNLO, original given in pm / V        
-    def set_theta(self, angle):
+        self.deff  = 28.5e-12 # from SNLO, original given in pm / V    
+
+    def set_theta(self, angle: float):
         self.theta = angle
-    def n(self, wl_nm, axis = "mix"):        
+
+    def n(self, wl_nm: float, axis: str = "mix"):        
         """ Axis specifies crystal axis, either o, e, or mix. If mix, class
             instances value for theta sets mixing angle (0 = pure ordinary). 
             Following experimental results from Willer, Blanke, Schade

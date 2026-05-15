@@ -24,9 +24,9 @@ This file is part of pyNLO.
 # Rev. Mod. Phys., Vol. 78, No. 4, October-December 2006
 import numpy as np
 import matplotlib.pyplot as plt
-from pynlo.interactions.FourWaveMixing import SSFM
-from pynlo.media.fibers import fiber
-from pynlo.light.DerivedPulses import SechPulse
+from CuPyNLO.interactions.FourWaveMixing import SSFM
+from CuPyNLO.media.fibers import fiber
+from CuPyNLO.light.DerivedPulses import SechPulse
 
 dz = 1e-3
 steps = 100
@@ -75,6 +75,9 @@ zW_in = np.transpose(AW)[:,iis]
 zT_in = np.transpose(AT)[:,iisT]
 zW = 10*np.log10(np.abs(zW_in)**2)
 zT = 10*np.log10(np.abs(zT_in)**2)
+# propagate returns z_positions of length n_steps+1, while AW/AT contain n_steps values
+# use the corresponding step positions for the plotted data.
+y = y[1:]
 mlIW = np.max(zW)
 mlIT = np.max(zT)
 
@@ -97,14 +100,14 @@ plt.ylabel(r'$\beta_2$ (ps$^2$/km)')
 
 plt.figure()
 plt.subplot(121)
-plt.pcolormesh(xW, y, zW, vmin = mlIW - 40.0, vmax = mlIW)
+plt.pcolormesh(xW, y, zW, shading='nearest', vmin = mlIW - 40.0, vmax = mlIW)
 plt.autoscale(tight=True)
 plt.xlim([loWL, hiWL])
 plt.xlabel('Wavelength (nm)')
 plt.ylabel('Distance (m)')
 
 plt.subplot(122)
-plt.pcolormesh(xT, y, zT, vmin = mlIT - 40.0, vmax = mlIT)
+plt.pcolormesh(xT, y, zT, shading='nearest', vmin = mlIT - 40.0, vmax = mlIT)
 plt.autoscale(tight=True)
 plt.xlabel('Delay (ps)')
 plt.ylabel('Distance (m)')

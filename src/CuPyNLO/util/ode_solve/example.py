@@ -25,7 +25,6 @@ import numpy as np
 from CuPyNLO.util.ode_solve import dopr853
 from CuPyNLO.util import ode_solve
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 class integrand:
     def deriv(self, x, y, dydx):

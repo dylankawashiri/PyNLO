@@ -9,7 +9,6 @@ from __future__ import print_function
 
 import numpy as np
 import tables
-from CuPyNLO.util.pynlo_ffts import IFFT_t
 from CuPyNLO.light.PulseBase import Pulse
 
 class DFGReader:

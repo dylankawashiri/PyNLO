@@ -19,7 +19,7 @@ This file is part of pyNLO.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pynlo.media.crystals.XTAL_PPLN import PPLN
+from CuPyNLO.media.crystals.XTAL_PPLN import PPLN
 from scipy import integrate
 
 plt.close('all')
@@ -36,7 +36,7 @@ NPTS = 1000
 mix_bw =  crystal.calculate_mix_phasematching_bw(1064, np.linspace(1300, sgnl_stop_wl,NPTS))
 idler =   1.0/(1.0/1064 - 1.0/np.linspace(1300, sgnl_stop_wl,NPTS))
 
-print crystal.invert_dfg_qpm_to_signal_wl(1064, 24e-6)
+print(crystal.invert_dfg_qpm_to_signal_wl(1064, 24e-6))
 
 # ODE for finding 'ideal' QPM structure
 # dLambda/dz = 1/phasematching BW

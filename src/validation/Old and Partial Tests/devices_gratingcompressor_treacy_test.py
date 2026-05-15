@@ -19,7 +19,6 @@ This file is part of pyNLO.
 """
 import unittest
 from pynlo.devices.grating_compressor import TreacyCompressor
-import numpy as np
 
 class TreacyTest(unittest.TestCase): 
     def setUp(self):

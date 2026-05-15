@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-from . import crystals
-from . import fibers
+from . import crystals as crystals
+from . import fibers as fibers

@@ -20,9 +20,9 @@ This file is part of pyNLO.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from pynlo.interactions import FourWaveMixing
-from pynlo.media.fibers import fiber
-from pynlo.light.DerivedPulses import SechPulse
+from CuPyNLO.interactions import FourWaveMixing
+from CuPyNLO.media.fibers import fiber
+from CuPyNLO.light.DerivedPulses import SechPulse
 
 plt.close('all')
 
@@ -64,7 +64,7 @@ wl = 1e9 * 2 * np.pi * 3e8 / (pulse.W_THz * 1e12)
 loWL = 1200
 hiWL = 2000
 
-print wl
+print(wl)
                          
 iis = np.logical_and(wl>loWL,wl<hiWL)
 iisT = np.logical_and(pulse.T_ps>-1,pulse.T_ps<5)

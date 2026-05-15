@@ -8,5 +8,5 @@ from __future__ import division
 from __future__ import print_function
 
 
-from CuPyNLO.media.crystals.XTAL_PPLN import PPLN
-from CuPyNLO.media.crystals.XTAL_AgGaSe2 import AgGaSe2
+from CuPyNLO.media.crystals.XTAL_PPLN import PPLN as PPLN
+from CuPyNLO.media.crystals.XTAL_AgGaSe2 import AgGaSe2 as AgGaSe2
