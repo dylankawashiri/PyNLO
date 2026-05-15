@@ -3,8 +3,8 @@ from __future__ import annotations
 from CuPyNLO.light.PulseBase import Pulse
 
 import numpy as np
-from scipy import misc, optimize
-from scipy.constants import speed_of_light
+from scipy import misc, optimize # type: ignore
+from scipy.constants import speed_of_light # type: ignore
 
 class Crystal:
     """ Container for chi-2 nonlinear crystals. Actual crystal refractive index,
@@ -15,7 +15,7 @@ class Crystal:
     _wavelength_axes    = {}
     _enable_caching     = False
     _cached_ns          = {}
-    _crystal_properties  = {'damage_threshold_GW_per_sqcm': 1.0,
+    _crystal_properties  = {'damage_threshold_GW_per_sqcm': 1.0, # type: ignore
                             'damage_threshold_info' : ''}
     
     def __init__(self, params: dict[str, float | bool]):                

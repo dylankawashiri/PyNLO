@@ -21,9 +21,9 @@ This file is part of pyNLO.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from pynlo.interactions import FourWaveMixing
-from pynlo.media.fibers import fiber
-from pynlo.light.DerivedPulses import SechPulse
+from CuPyNLO.interactions import FourWaveMixing
+from CuPyNLO.media.fibers import fiber
+from CuPyNLO.light.DerivedPulses import SechPulse
 
 
 plt.close('all')
@@ -97,19 +97,5 @@ plt.autoscale(tight=True)
 plt.xlim([-4, 4])
 plt.xlabel(r'($\nu - \nu_0) \times T_0$')
 plt.ylabel(r'Distance ($z/L_{NL})$')
-
-#plt.figure()
-#plt.subplot(121)
-#plt.pcolormesh(xW, y, zW, vmin = mlIW - 40.0, vmax = mlIW)
-#plt.autoscale(tight=True)
-#plt.xlim([loWL, hiWL])
-#plt.xlabel('Wavelength (nm)')
-#plt.ylabel('Distance (m)')
-#
-#plt.subplot(122)
-#plt.pcolormesh(xT, y, zT, vmin = mlIT - 40.0, vmax = mlIT)
-#plt.autoscale(tight=True)
-#plt.xlabel('Delay (ps)')
-#plt.ylabel('Distance (m)')
 
 plt.show()

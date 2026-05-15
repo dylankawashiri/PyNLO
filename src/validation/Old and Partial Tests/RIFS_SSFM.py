@@ -20,9 +20,9 @@ This file is part of pyNLO.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from SSFM import SSFM
-from fiber import Fiber
-from pulse import Pulse
+from CuPyNLO.interactions.FourWaveMixing import SSFM
+from CuPyNLO.media.fibers.fiber import FiberInstance as Fiber
+from CuPyNLO.light.DerivedPulses import Pulse
 #from fftw_transforms import fftcomputer as fftw
 #from scipy import fftpack
 

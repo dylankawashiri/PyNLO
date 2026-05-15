@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy import constants, signal, integrate, differentiate  # type: ignore[import]
+from scipy import constants, signal, integrate  # type: ignore[import]
 
 from CuPyNLO.light.PulseBase import Pulse
 

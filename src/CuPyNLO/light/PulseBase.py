@@ -670,7 +670,7 @@ class Pulse:
         
         
         
-    def chirp_pulse_W(self, GDD, TOD=0, FOD = 0.0, w0_THz = None):
+    def chirp_pulse_W(self, GDD: float, TOD: float = 0, FOD: float = 0.0, w0_THz: bool = None):
         r""" Alter the phase of the pulse 
         
         Apply the dispersion coefficients :math:`\beta_2, \beta_3, \beta_4`

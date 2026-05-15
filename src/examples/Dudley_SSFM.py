@@ -1,29 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr 15 15:39:12 2014
-This file is part of pyNLO.
+# type: ignore
+from __future__ import annotations
 
-    pyNLO is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    pyNLO is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
-@author: dim1
-"""
-
-# This script simulates supercontinuum generation in a silica fiber.
-# It basically reproduces Fig. 3 from 
-# Dudley, Gentry, and Cohen: Supercontinuum generation in photonic crystal fiber,
-# Rev. Mod. Phys., Vol. 78, No. 4, October-December 2006
 import numpy as np
 import matplotlib.pyplot as plt
+
 from CuPyNLO.interactions.FourWaveMixing import SSFM
 from CuPyNLO.media.fibers import fiber
 from CuPyNLO.light.DerivedPulses import SechPulse
@@ -112,4 +92,4 @@ plt.autoscale(tight=True)
 plt.xlabel('Delay (ps)')
 plt.ylabel('Distance (m)')
 
-plt.show()
+plt.show() # type: ignore

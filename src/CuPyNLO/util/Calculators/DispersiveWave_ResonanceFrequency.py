@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import math
-from scipy import optimize
+from scipy import optimize # type: ignore
 
 from CuPyNLO.media.fibers import fiber
 from CuPyNLO.media.fibers.calculators import DTabulationToBetas
@@ -25,22 +25,22 @@ center_wavelength_nm = 1560.0
 poly_order = 2
 
 betas, omegaAxis, data, fit = DTabulationToBetas(center_wavelength_nm,
-                           np.transpose(np.vstack((fiber1.x,fiber1.y))),
+                           np.transpose(np.vstack((fiber1.x, fiber1.y))),
                             poly_order,
                             DDataIsFile = False,
                             return_diagnostics = True)
-plt.figure(figsize = (12, 6))
-plt.title(fibername)
-plt.subplot(121)                            
-plt.plot(omegaAxis / (2.0*np.pi), data* 1.0e6, label = 'OFS Data' )
-plt.plot(omegaAxis / (2.0*np.pi), fit* 1.0e6, label = 'Fit' )
-plt.ylabel('GVD (fs^2 / m)')
-plt.xlabel('Frequency from 1560 nm (THz)')
-plt.legend(loc=2)
-plt.subplot(122)  
-plt.plot(omegaAxis / (2.0*np.pi), (data - fit)* 1.0e6)
-plt.ylabel('Fit Residuals (fs^2 / m)')
-plt.xlabel('Frequency from 1560 nm (THz)')
+plt.figure(figsize = (12, 6)) # type: ignore
+plt.title(fibername) # type: ignore
+plt.subplot(121) # type: ignore
+plt.plot(omegaAxis / (2.0*np.pi), data* 1.0e6, label = 'OFS Data' ) # type: ignore
+plt.plot(omegaAxis / (2.0*np.pi), fit* 1.0e6, label = 'Fit' ) # type: ignore
+plt.ylabel('GVD (fs^2 / m)') # type: ignore
+plt.xlabel('Frequency from 1560 nm (THz)') # type: ignore
+plt.legend(loc=2) # type: ignore
+plt.subplot(122) # type: ignore
+plt.plot(omegaAxis / (2.0*np.pi), (data - fit)* 1.0e6) # type: ignore
+plt.ylabel('Fit Residuals (fs^2 / m)') # type: ignore
+plt.xlabel('Frequency from 1560 nm (THz)') # type: ignore
 
 ###############################################################################
 ## Pulse parameters
@@ -56,7 +56,7 @@ P0 = 0.94 * EPP / t0 # Gaussian pulse
 
 ###############################################################################
 ## Solve
-def fn(x):
+def fn(x: float):
     eqn = 0
     for n in range(len(betas)):
        print(betas[n] * np.power(x, n+2) / math.factorial(n+2))
