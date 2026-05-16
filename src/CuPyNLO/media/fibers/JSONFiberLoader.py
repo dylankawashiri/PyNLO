@@ -28,6 +28,9 @@ from enum import Enum
 class Collection(Enum):
     GENERAL_FIBERS = "general_fibers"
 
+class Fibers(Enum):
+    SIMPLE_FIBER = "Simple Fiber"
+
 class JSONFiberLoader:
     """ Load fiber parameters from pickle file. """
     fiber_names = None
