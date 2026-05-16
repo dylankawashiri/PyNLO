@@ -18,12 +18,8 @@ try:
 except ModuleNotFoundError:
     pyfftw_available = False
 
-
-
-pyfftw_available = True
-
 class SSFM:
-    METHOD_SSFM,METHOD_RK4IP = range(2)    
+    METHOD_SSFM, METHOD_RK4IP = range(2)    
     def __init__(self,  local_error: float = 0.001, dz: float = 1e-5,
                  disable_Raman: bool = False, disable_self_steepening: bool = False,
                  suppress_iteration: bool = True, USE_SIMPLE_RAMAN: bool = False,
@@ -53,18 +49,17 @@ class SSFM:
         self.dz_min = 1e-12
         self.suppress_iteration = suppress_iteration
 
+        self.gamma = None
+
 
     def load_fiber_parameters(self, pulse_in: Pulse, fiber: FiberInstance, z: float = 0.0):
         """
         This funciton loads the fiber parameters into class variables.
         """
         self.betas[:]  =  fiber.get_betas(pulse_in, z=z)
-        # self.alpha[:]  = -fiber.get_gain(pulse_in, output_power) # currently alpha cannot change with z
         self.gamma     =  fiber.get_gamma(z=z)
-        
         self.betas[:]  = self.conditional_fftshift(self.betas)
-        # self.alpha[:]   = self.conditional_fftshift(self.alpha)
-        
+
 
 
     def setup_fftw(self, pulse_in: Pulse, fiber: FiberInstance, output_power: float, raman_plots: bool = False):
@@ -376,6 +371,9 @@ class SSFM:
     def NonlinearOperator(self, A: np.ndarray) -> np.ndarray:
         self.A2[:]  = np.abs(A)**2   
         self.A2w[:] = self.FFT_t(self.A2)
+
+        if self.gamma is None:
+            raise RuntimeError("Gamma is not defined.")
    
         if self.disable_self_steepening:
             return 1j  * self.gamma * self.IFFT_t(self.R*self.A2w)

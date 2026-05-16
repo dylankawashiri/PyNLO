@@ -34,7 +34,7 @@ class Controller:
         self.reject = False
         self.errold = 1.0e-4
         self.hnext  = 0.0
-    def success(self, err, h):
+    def success(self, err: float, h: float):
        beta=0.0
        alpha=1.0/8.0-beta*0.2
        safe=0.9
@@ -60,8 +60,7 @@ class Controller:
            if DEBUG:
                print ('Accept, ',h)
            return (True, h)
-       else:           
-
+       else:
            scale = max(safe*np.power(err, -alpha), minscale)
            h *= scale
            if DEBUG:

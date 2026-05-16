@@ -1,28 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jun 09 17:21:09 2015
-This file is part of pyNLO.
+from __future__ import annotations
 
-    pyNLO is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    pyNLO is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
-@author: ycasg
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+import numpy as np
 
 from CuPyNLO.util.ode_solve.steppers import StepperBase
-import numpy as np
 from CuPyNLO.util.ode_solve import dopr853_constants as dc
 from CuPyNLO.util.ode_solve.dopr853_controller import Controller
 
@@ -68,7 +48,7 @@ class StepperDopr853(StepperBase):
         self.rcont7 = self.gen_array()
         self.rcont8 = self.gen_array()
         self.EPS    = np.finfo(np.double).eps
-    def step(self, htry, RHS_class):
+    def step(self, htry: float, RHS_class):
         h = htry
         dydxnew  = self.gen_array()
         while True:
@@ -89,6 +69,7 @@ class StepperDopr853(StepperBase):
         self.hdid   = h
         self.x      += self.hdid
         self.hnext  = self.con.hnext
+
     def dy(self, h, RHS_class):
         # dy estimator. Like RK5, but more -- 12 stages!
         ytemp = self.gen_array()

@@ -708,7 +708,7 @@ class Pulse:
             self.set_AW( np.exp(1j * (GDD / 2.0) * V**2 + 
                                    1j * (TOD / 6.0) * V**3+ 
                                    1j * (FOD / 24.0) * V**4) * self.AW )
-    def apply_phase_W(self, phase):
+    def apply_phase_W(self, phase: float) -> None:
         self.set_AW(self.AW * np.exp(1j*phase))
     def chirp_pulse_T(self, chirp2, chirp3, T0):
         self.set_AT( self.AT * np.exp(-1j * (chirp2 / 2.0) * (self.T_ps/T0)**2 + 

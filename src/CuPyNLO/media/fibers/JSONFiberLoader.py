@@ -21,8 +21,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import jsonpickle
+import jsonpickle # type: ignore
 import os
+from enum import Enum
+
+class Collection(Enum):
+    GENERAL_FIBERS = "general_fibers"
 
 class JSONFiberLoader:
     """ Load fiber parameters from pickle file. """
