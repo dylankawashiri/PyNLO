@@ -10,6 +10,7 @@ from numpy.fft import fftshift, ifftshift
 from typing import Any
 import scipy.fftpack  # type: ignore[import]
 
+
 pyfftw: Any = None
 try:
     import pyfftw  # type: ignore[import]
@@ -50,7 +51,6 @@ class SSFM:
         self.suppress_iteration = suppress_iteration
 
         self.gamma = None
-
 
     def load_fiber_parameters(self, pulse_in: Pulse, fiber: FiberInstance, z: float = 0.0):
         """
@@ -545,6 +545,8 @@ class SSFM:
             y, AW, AT, pulse_out = self.propagate(pulse_in=pulse, fiber=fiber, n_steps=n_steps)
 
             results.append((y, AW, AT, pulse_in, pulse_out))
+
+            
         
         for n1, (y, E1, AT, pulse_in, pulse_out) in enumerate(results):
             for n2, (y, E2, AT, pulse_in, pulse_out) in enumerate(results):
