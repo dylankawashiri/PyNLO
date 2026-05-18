@@ -19,7 +19,7 @@ This file is part of pyNLO.
 """
 import unittest
 import numpy as np
-from pynlo.light.DerivedPulses import SechPulse, CWPulse
+from CuPyNLO.light.DerivedPulses import SechPulse, CWPulse
 
 
 class SechPowerTest(unittest.TestCase):    

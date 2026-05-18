@@ -12,13 +12,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from pynlo.light.DerivedPulses import GaussianPulse
-from pynlo.media.crystals import PPLN
-from pynlo.interactions.ThreeWaveMixing import dfg_problem
+from CuPyNLO.light.DerivedPulses import GaussianPulse
+from CuPyNLO.media.crystals import PPLN
+from CuPyNLO.interactions.ThreeWaveMixing import dfg_problem
 
-from pynlo.util import ode_solve
-from pynlo.util.ode_solve import dopr853
-from pynlo.light import OneDBeam
+from CuPyNLO.util import ode_solve
+from CuPyNLO.util.ode_solve import dopr853
+from CuPyNLO.light import OneDBeam
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 

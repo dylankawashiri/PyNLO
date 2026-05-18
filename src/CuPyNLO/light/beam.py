@@ -33,7 +33,7 @@ class OneDBeam:
         self.waist = None
         self._lambda0 = None
 
-    def calc_confocal(self, n_s: float = 1.0) -> float:
+    def calc_confocal(self, n_s: float = 1.0):
         if self.waist is None or self._lambda0 is None:
             raise ValueError("Waist and/or lambda0 is undefined")
         return (2.0*np.pi) * self.waist**2 * (n_s/self._lambda0)  
