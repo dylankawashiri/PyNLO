@@ -10,7 +10,7 @@ from typing import Any, Callable, cast
 from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.fibers.calculators_v2 import DTabulationToBetas
 from CuPyNLO.util.pynlo_ffts import IFFT_t
-from CuPyNLO.media.fibers.JSONFiberLoader import JSONFiberLoader, Collection, Fibers # type: ignore
+from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers # type: ignore
 
 
 class FiberInstance:
@@ -73,6 +73,16 @@ class FiberInstance:
     @gamma.setter
     def gamma(self, val: float):
         self._gamma = val
+
+    @property
+    def length(self) -> float:
+        if self._length is None:
+            raise ValueError("Length not set.")
+        return self._length
+    
+    @length.setter
+    def length(self, val: float):
+        self._length = val
 
     def get_betas(self, pulse: Pulse, z: float = 0.0) -> np.ndarray:
         b: npt.NDArray[np.float64] = np.zeros((pulse.n, ), dtype=np.float64)
@@ -178,7 +188,6 @@ class FiberInstance:
                         OptimizeResult,
                         minimize(g, x0=x0, method="Powell"),
                     )
-                    scale = np.asarray(scale_factor.x, dtype=np.float64)[0]
 
                     return gain_spec * float(scale_factor.x[0])
                 else:

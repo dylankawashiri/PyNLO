@@ -166,7 +166,7 @@ class Pulse:
         self._center_frequency_THz = val / (2.0 * np.pi)
 
     @property
-    def W_THz(self) -> np.ndarray:
+    def W_THz(self) -> npt.NDArray[np.float64]:
         return self.V_THz + self.w0
     
     @property
@@ -174,11 +174,11 @@ class Pulse:
         return self.W_THz * 1e12
 
     @property
-    def wavelength_nm(self) -> np.ndarray:
+    def wavelength_nm(self) -> npt.NDArray[np.float64]:
         return 2.0 * np.pi * self._c_nmps / self.W_THz
     
     @property
-    def wavelength_m(self) -> np.ndarray:
+    def wavelength_m(self) -> npt.NDArray[np.float64]:
         return self.wavelength_nm * 1e-9
     
     @property
@@ -318,22 +318,22 @@ class Pulse:
         self.aw = np.roll(self.aw, -1 * round(rotation))
 
     def interpolate(self, wavelength_nm: float) -> Pulse:
-        pulse = self.clone_pulse()
+        pulse = self.create_cloned_pulse()
         pulse.center_wavelength_nm = wavelength_nm
         interpolator = interp1d(self.W_Hz, self._aw, bounds_error=False, fill_value=0.0)
         pulse.aw = interpolator(pulse.W_Hz)
         return pulse
     
-    def clone_pulse(self) -> Pulse:
+    def clone_pulse(self, pulse: Pulse):
+        self.n = pulse.n
+        self.time_window_ps = pulse.time_window_ps
+        self.center_wavelength_nm = pulse.center_wavelength_nm
+        self.frep_MHz = pulse.frep_MHz
+        self.at = pulse.at
+
+    def create_cloned_pulse(self) -> Pulse:
         pulse = Pulse()
-        pulse.n = self._n
-        pulse.time_window_ps = self._time_window_ps
-        pulse.center_wavelength_nm = self.center_wavelength_nm
-        pulse.frep_MHz = self._frep_MHz
-        if self._at is not None:
-            pulse.at = self._at
-        else:
-            pulse.at = self.at
+        pulse.clone_pulse(self)
         return pulse
 
     def filter_by_wavelength_nm(self, lower_wavelength_nm: float, upper_wavelength_nm: float):
