@@ -126,7 +126,7 @@ class Pulse:
 
     @property
     def dT_ps(self) -> float:
-        return self.dT_ps
+        return self._time_window_ps / np.double(self._n)
 
     @property
     def dT_s(self) -> float:

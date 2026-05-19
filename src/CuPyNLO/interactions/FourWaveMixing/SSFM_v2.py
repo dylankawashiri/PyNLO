@@ -55,6 +55,8 @@ class SSFM:
         self.h = None
         self.direction = None
 
+        self.iter = 0
+
     def setup_fftw(self, pulse: Pulse, fiber: FiberInstance, output_power: float, *, raman_plots: bool = False):
         self._n = pulse.n
 
@@ -101,7 +103,7 @@ class SSFM:
         self.alpha[:] = fiber.get_gain(pulse, output_power=output_power)
         self._gamma = fiber.gamma
         self._w0 = pulse.center_frequency_THz * 2.0 * np.pi
-
+        
         self.CalculateRamanResponseFT(pulse)
 
     def CalculateRamanResponseFT(self, pulse: Pulse):
@@ -139,24 +141,79 @@ class SSFM:
     def integrate_over_dz(self, delta_z: float, direction: int = 1):
         dz = self.dz
         factor = 2**(1.0 / self.eta)
+        dist = delta_z
 
-        if 2.0 * dz > delta_z:
-            dz = delta_z / 2.0
+        return_dz = None
+        force = False
+
+        if 2.0 * dz > dist:
+            dz = dist / 2.0
         
-        while delta_z > 0:
+        while dist > 0:
             self.ac[:] = self.a
             self.af[:] = self.a
 
-            self.ac[:] 
+            self.ac[:] = self.advance(self.ac, 2.0  * dz, direction)
+            self.af[:] = self.advance(self.af, dz, direction)
+            self.af[:] = self.advance(self.af, dz, direction)
 
-    def advance(self, a: np.ndarray, h: float, direction: int, method: Methods):
+            delta = self.calculate_local_error()
+
+            old_dz = dz
+            new_dz = dz
+
+            if delta > 2.0 * self._local_error:
+                new_dz = dz / 2.0
+                if new_dz >= self.dz_min:
+                    dz = new_dz
+                    continue
+            elif delta >= self._local_error and delta <= 2.0 * self._local_error:
+                new_dz = dz / factor
+                if new_dz >= self.dz_min:
+                    dz = new_dz
+            elif delta >= 0.5 * self._local_error and delta <= self._local_error:
+                new_dz = new_dz
+            else:
+                new_dz = dz * factor
+                dz = new_dz
+            if self.eta == 3:
+                self.a[:] = (4 / 3) * self.af - (1.0 / 3.0) * self.ac
+            elif self.eta == 5:
+                self.a[:] = (16 / 15) * self.af - (1 / 15) * self.ac
+            else:
+                p = 2 ** (self.eta - 1)
+                self.a[:] = (p / (p - 1)) * self.af - (1 / (p - 1)) * self.ac
+
+            dist -= 2 * old_dz
+            self.iter+=1
+
+            if 2 * dz > dist and dist > 2 * self.dz_min:
+                force = True
+                return_dz = dz
+                dz = dist / 2
+
+        if force:
+            if return_dz is None:
+                raise ValueError("return_dz not set.")
+            dz = return_dz
+        self.dz = dz
+
+
+    def advance(self, a: np.ndarray, dz: float, direction: int, method: Methods = Methods.RK4IP):
         if method is Methods.SSFM:
             if direction == 1:
-                a[:]
+                a[:] = self.linear_step(a, dz, direction)
+                return np.exp(dz * direction * self.nonlinear_operator(a)) * a
+            else:
+                a[:] = np.exp(dz * direction * self.nonlinear_operator(a)) * a
+                return self.linear_step(a, dz, direction)
+        else:
+            return self.rk4ip(a, dz, direction)
 
     def linear_step(self, a: np.ndarray, h: float, direction: int):
         self.calculate_expD(h=h, direction=direction)
-        self._linear_step[:] = self.IFFT_t(s)
+        self._linear_step[:] = self.IFFT_t(self.exp_D * self.FFT_t(a))
+        return self._linear_step
 
     @checker
     def calculate_expD(self, *, h: float, direction: int):
@@ -195,6 +252,13 @@ class SSFM:
         
         return self.IFFT_t(self.exp_D * self.FFT_t(self.a_i + self.k1 / 6.0 + self.k2 / 3.0 + self.k3 / 3.0)) + self.k4 / 6.0
     
+    def calculate_local_error(self):
+        denom = np.linalg.norm(self.af)
+        if denom != 0:
+            return np.linalg.norm(self.af - self.ac) / np.linalg.norm(self.af)
+        else:
+            return np.linalg.norm(self.af - self.ac)
+
     def propagate(self, pulse: Pulse, fiber: FiberInstance, n_steps: int, *, output_power: float = 1.0, reload: bool = False, thread: bool = False):
         z_pos = np.linspace(0, fiber.length, n_steps + 1)
         
@@ -237,10 +301,10 @@ class SSFM:
                 if n1 == n2:
                     continue
                 g12 = np.conj(e1) * e2 / np.sqrt(np.abs(e1)**2 * np.abs(e2)**2)
-                
-
-
-        for n1, (y, e1, at, pulse, pulse_out)
+                if "g12_stack" not in locals():
+                    g12_stack = g12
+                else:
+                    g12_stack = np.dstack((g12, g12_stack))
 
     def FFT_t(self, A: np.ndarray) -> np.ndarray:
         if gv.PRE_FFTSHIFT:

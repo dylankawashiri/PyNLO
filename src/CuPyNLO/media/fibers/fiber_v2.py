@@ -10,7 +10,7 @@ from typing import Any, Callable, cast
 from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.fibers.calculators_v2 import DTabulationToBetas
 from CuPyNLO.util.pynlo_ffts import IFFT_t
-from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers # type: ignore
+from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers, JSONFiberLoader # type: ignore
 
 
 class FiberInstance:
@@ -40,16 +40,18 @@ class FiberInstance:
         self._betas = betas
         self._length = length
         self._fiber_type = fiber_type
-        self._fiber_specs: dict[str, str | bool | None] = fiber_specs if fiber_specs is not None else {}
+        self._fiber_specs: dict[str, str | bool | float | None] = fiber_specs if fiber_specs is not None else {}
         self._poly_order = poly_order
         self._gamma = gamma
-        self._gain: bool | None = None
-        self._gain_x_units = self._fiber_specs["gain_x_units"]
+        self._gain: bool = True
+        self._gain_x_units = None
 
         self._center_wavelength_nm: float | None = None
 
         self.x = None
         self.y = None
+
+        self.fiberloader = JSONFiberLoader()
 
     def set_dispersion_function(self, dispersion_function: Callable[[float], float] | Callable[[float], npt.NDArray[np.float64]], dispersion_format: str = "GVD"):
         self.dispersion_changes_with_z = True
@@ -59,6 +61,37 @@ class FiberInstance:
     def set_gamma_function(self, gamma_function: Callable[[float], float]) -> None:
         self.gamma_function = gamma_function
         self.gamma_changes_with_z = True
+
+    def load_from_db(self, length: float, fibertype: str, poly_order: int = 2):
+        self._fiber_type = fibertype
+        self._fiber_specs = self.fiberloader.get_fiber(fibertype)
+        self._length = length
+        self._betas = np.array([0])
+        self._gamma = self._fiber_specs["gamma"]
+        self._poly_order = poly_order
+        self.load_dispersion()
+
+    def load_dispersion(self):
+        """This is typically called by the "load_from_db" function. 
+        It takes the values from the self.fiberspecs dict and transfers them into the appropriate variables. """
+        
+        if self._fiber_specs["dispersion_format"] == "D":
+            self.dispersion_x_units = self._fiber_specs["dispersion_x_units"]
+            self.dispersion_y_units = self._fiber_specs["dispersion_y_units"]
+            self.x = self._fiber_specs["dispersion_x_data"]
+            self.y = self._fiber_specs["dispersion_y_data"]
+            return 1
+            
+        elif self._fiber_specs["dispersion_format"] == "GVD":
+            self.dispersion_gvd_units = self._fiber_specs["dispersion_gvd_units"]
+            self._center_wavelength_nm = self._fiber_specs["dispersion_gvd_center_wavelength"]
+            # If in km^-1 units, scale to m^-1
+            if self.dispersion_gvd_units == 'ps^n/km':
+                self.betas = np.array(self._fiber_specs["dispersion_data"]) / 1e3
+            return 1
+        else:
+            print( "Error: no dispersion found.")
+            return None   
 
     @property
     def gamma(self, z: float = 0.0) -> float:
@@ -85,8 +118,7 @@ class FiberInstance:
         self._length = val
 
     def get_betas(self, pulse: Pulse, z: float = 0.0) -> np.ndarray:
-        b: npt.NDArray[np.float64] = np.zeros((pulse.n, ), dtype=np.float64)
-
+        b: npt.NDArray[np.float64] = np.zeros((pulse.n, ), dtype=float)
         if self.dispersion_changes_with_z:
             if self.dispersion_function is None:
                 raise ValueError("Dispersion function not set.")
@@ -110,8 +142,6 @@ class FiberInstance:
                         b = np.array(interpolator(pulse.W_THz), dtype=float)
             else:
                 self._betas = np.array(self.dispersion_function(z))
-        
-        
 
         if self._fiber_specs["dispersion_format"] == "GVD":
             if self._center_wavelength_nm is None:
@@ -120,7 +150,9 @@ class FiberInstance:
                 raise ValueError("Betas not set.")
             fiber_omega0 = 2.0 * np.pi * self._c / self._center_wavelength_nm
             betas = self._betas
-            b = np.array([b[i] + betas[i] / factorial(i + 2) * (pulse.W_THz - fiber_omega0)**(i+2) for i in range(len(betas))], dtype=float)
+            for i in range(len(betas)):
+                betas[i] = betas[i]
+                b += betas[i] / factorial(i + 2) * (pulse.W_THz - fiber_omega0)**(i + 2)
 
         if self._fiber_specs["dispersion_format"] == "GVD" or self._fiber_specs["dispersion_format"] == "n":
             center_idx = np.argmin(np.abs(pulse.V_THz))
@@ -132,8 +164,6 @@ class FiberInstance:
     def get_gain(self, pulse: Pulse, *, output_power: float = 1.0) -> np.ndarray:
         if self._fiber_specs["is_gain"]:
             if self.is_simple_fiber:
-                if self._gain is None:
-                    raise ValueError("Gain not set.")
                 raise TypeError("Fiber is not gain fiber.")
             else:
                 if self._fiber_specs["gain_x_data"] is not None:
@@ -141,12 +171,12 @@ class FiberInstance:
 
                     x: npt.NDArray[np.float64] = np.asarray(
                         self._fiber_specs["gain_x_data"],
-                        dtype=np.float64,
+                        dtype=float,
                     )
 
                     y: npt.NDArray[np.float64] = np.asarray(
                         self._fiber_specs["gain_y_data"],
-                        dtype=np.float64,
+                        dtype=float,
                     )
 
                     f = interpolate.interp1d(
@@ -159,7 +189,7 @@ class FiberInstance:
 
                     gain_spec: npt.NDArray[np.float64] = np.asarray(
                         f(pulse.W_Hz / (2.0 * np.pi)),
-                        dtype=np.float64,
+                        dtype=float,
                     )
 
                     def g(k: npt.NDArray[np.float64]) -> float:
@@ -182,7 +212,7 @@ class FiberInstance:
 
                         return float(val)
 
-                    x0: npt.NDArray[np.float64] = np.array([1.0], dtype=np.float64)
+                    x0: npt.NDArray[np.float64] = np.array([1.0], dtype=float)
 
                     scale_factor = cast(
                         OptimizeResult,
@@ -191,12 +221,8 @@ class FiberInstance:
 
                     return gain_spec * float(scale_factor.x[0])
                 else:
-                    if self._gain is None:
-                        raise ValueError("gain not set.")
-                    return np.ones((pulse.n, )) * self._gain
-        if self._gain is None:
-            raise ValueError("Gain not set.")
-        return np.zeros((pulse.n, )) * self._gain
+                    return np.ones((pulse.n, )) * int(self._gain)
+        return np.zeros((pulse.n, )) * int(self._gain)
 
     def beta2_to_d(self, pulse: Pulse):
         return -2.0 * np.pi * self._c / pulse.wavelength_nm**2 * self.beta2(pulse) * 1000

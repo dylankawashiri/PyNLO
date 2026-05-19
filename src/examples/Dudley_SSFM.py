@@ -4,9 +4,9 @@ from __future__ import annotations
 import numpy as np
 import matplotlib.pyplot as plt
 
-from CuPyNLO.interactions.FourWaveMixing import SSFM
-from CuPyNLO.media.fibers import fiber
-from CuPyNLO.light.DerivedPulses import SechPulse
+from CuPyNLO.interactions.FourWaveMixing.SSFM_v2 import SSFM
+from CuPyNLO.media.fibers import fiber_v2 as fiber
+from CuPyNLO.light.DerivedPulses_v2 import SechPulse
 
 dz = 1e-3
 steps = 100
@@ -21,30 +21,30 @@ pump_pulse_length = 28.4e-3
 npoints = 2**13
 
 init = SechPulse(power                  =   pump_power, 
-                 T0_ps                  =   pump_pulse_length, 
+                 t0_ps                  =   pump_pulse_length, 
                  center_wavelength_nm   =   centerwl, 
                  time_window_ps         = 10.0,
-                 GDD = 0, TOD = 0.0, 
-                 NPTS = npoints, 
+                 gdd = 0, tod = 0.0, 
+                 n = npoints, 
                  frep_MHz               = 100.0, 
                  power_is_avg           = False)
 
 fiber1 = fiber.FiberInstance() 
 fiber1.load_from_db( fiber_length, 'dudley')
 
-evol = SSFM.SSFM(dz = dz, local_error = 0.001, USE_SIMPLE_RAMAN = True)
+evol = SSFM(dz = dz, local_error = 0.001, use_simple_raman=True)
 y = np.zeros(steps)
-AW = np.zeros((init.NPTS, steps))
+AW = np.zeros((init.n, steps))
 AT = np.copy(AW)
 
-y, AW, AT, pulse1 = evol.propagate(pulse_in = init, fiber = fiber1, 
+y, AW, AT, pulse1 = evol.propagate(pulse = init, fiber = fiber1, 
                                    n_steps = steps)
-                           
-wl = init.wl_nm
+
+wl = init.wavelength_nm
 
 loWL = 400
 hiWL = 1400
-                         
+
 iis = np.logical_and(wl>loWL,wl<hiWL)
 
 iisT = np.logical_and(init.T_ps>-1,init.T_ps<5)
@@ -61,8 +61,11 @@ y = y[1:]
 mlIW = np.max(zW)
 mlIT = np.max(zT)
 
-D = fiber1.Beta2_to_D(init)
-beta = fiber1.Beta2(init)
+D = fiber1.beta2_to_d(init)
+beta = fiber1.beta2(init)
+
+
+print(beta, D)
 
 plt.figure()
 plt.subplot(121)
