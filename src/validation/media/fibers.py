@@ -1,4 +1,5 @@
 from CuPyNLO.media.fibers.fiber import FiberInstance
+from CuPyNLO.media.fibers.fiber_v2 import FiberInstance as FiberInstanceV2
 
 fiber = FiberInstance()
 
@@ -9,8 +10,7 @@ print(fiber.get_gamma())
 
 print("\nfiber_v2\n------------------\n")
 
-from CuPyNLO.media.fibers.fiber_v2 import FiberInstance
-fiber = FiberInstance()
+fiber = FiberInstanceV2()
 fiber.load_from_db(10.0, "dudley")
 
 print(fiber.gamma)

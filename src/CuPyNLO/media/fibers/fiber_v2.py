@@ -87,13 +87,12 @@ class FiberInstance:
             self._center_wavelength_nm = self._fiber_specs["dispersion_gvd_center_wavelength"]
             # If in km^-1 units, scale to m^-1
             if self.dispersion_gvd_units == 'ps^n/km':
-                self.betas = np.array(self._fiber_specs["dispersion_data"]) / 1e3
+                self._betas = np.array(self._fiber_specs["dispersion_data"]) / 1e3
             return 1
         else:
             print( "Error: no dispersion found.")
             return None   
 
-    @property
     def gamma(self, z: float = 0.0) -> float:
         if self.gamma_changes_with_z:
             if self.gamma_function is None:
@@ -103,8 +102,7 @@ class FiberInstance:
             raise ValueError("Gamma is not set.")
         return self._gamma
 
-    @gamma.setter
-    def gamma(self, val: float):
+    def set_gamma(self, val: float):
         self._gamma = val
 
     @property
@@ -157,7 +155,7 @@ class FiberInstance:
         if self._fiber_specs["dispersion_format"] == "GVD" or self._fiber_specs["dispersion_format"] == "n":
             center_idx = np.argmin(np.abs(pulse.V_THz))
             slope = np.gradient(b) / np.gradient(pulse.W_THz)
-            b -= slope[center_idx] * (pulse.V_THz) - b[center_idx]
+            b = b - slope[center_idx] * (pulse.V_THz) - b[center_idx]
 
         return b
 
@@ -245,7 +243,7 @@ class FiberInstance:
 
         self._center_wavelength_nm = center_wavelength_nm
         self._betas = np.copy(np.array(betas))
-        self.gamma = gamma_W_m
+        self.set_gamma(gamma_W_m)
 
         if gvd_units == "ps^n/m":
             self._betas *= 1e-3

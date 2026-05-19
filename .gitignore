@@ -65,9 +65,8 @@ dist/*
 *.doc
 
 CuPyNLO.egg-info/
-_verison.py
+_version.py
 .ruff_cache/
 typings/
 __pycache__/
-_version.py
 .venv/

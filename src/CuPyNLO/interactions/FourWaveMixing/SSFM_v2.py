@@ -5,8 +5,6 @@ from CuPyNLO.light.PulseBase_v2 import Pulse, Noise
 from CuPyNLO.media.fibers.fiber_v2 import FiberInstance
 
 from enum import IntEnum
-import gc
-from typing import Any
 
 import numpy as np
 from scipy.fft import fftshift, ifftshift, ifft, fft
@@ -17,7 +15,7 @@ from CuPyNLO.util.checker import checker
 
 class Methods(IntEnum):
     SSFM = 1
-    RK4IP = 1
+    RK4IP = 2
 
 class SSFM:
     def __init__(self, *, local_error: float = 0.001, dz: float = 1e-5,
@@ -100,11 +98,18 @@ class SSFM:
         self.r0[:]  = 0.0
 
         self.omegas[:] = pulse.V_THz
-        self.alpha[:] = fiber.get_gain(pulse, output_power=output_power)
+        self.alpha[:] = -fiber.get_gain(pulse, output_power=output_power)
         self._gamma = fiber.gamma
         self._w0 = pulse.center_frequency_THz * 2.0 * np.pi
-        
+
         self.CalculateRamanResponseFT(pulse)
+
+        self.a[:] = fftshift(pulse.at)
+        self.omegas[:] = fftshift(self.omegas)
+        self.alpha[:] = fftshift(self.alpha)
+        self.r[:] = fftshift(self.r)
+        self.r0[:] = fftshift(self.r0)
+        
 
     def CalculateRamanResponseFT(self, pulse: Pulse):
         tau1 = self.tau1
@@ -125,7 +130,7 @@ class SSFM:
             taub = 0.096
             fa = 0.75
             fb = 0.21
-            fc = 0.03
+            fc = 0.04
             self.f_r = 0.245
             
             ha = tau1 / (tau1**2 + tau2**2) * np.exp(-t / tau2) * np.sin(t / tau1)
@@ -238,7 +243,7 @@ class SSFM:
         self.dR_A2[:] = self.IFFT_t(self.r * self.FFT_t(self.dA2))
 
         return 1j * self._gamma * self.r_a2 - (self._gamma / self._w0) *\
-                (self.dR_A2 * np.where(np.abs(a) > 1e-15, self.dA * self.r_a2 / (1e-20 + a), 0))
+                (self.dR_A2 + np.where(np.abs(a) > 1e-15, self.dA * self.r_a2 / (1e-20 + a), 0))
 
     def rk4ip(self, a: np.ndarray, h: float, direction: int) -> np.ndarray:
         self.a_i[:] = self.linear_step(a, h, direction)
@@ -258,6 +263,11 @@ class SSFM:
             return np.linalg.norm(self.af - self.ac) / np.linalg.norm(self.af)
         else:
             return np.linalg.norm(self.af - self.ac)
+        
+    def load_fiber_parameters(self, pulse: Pulse, fiber: FiberInstance, z: float = 0.0):
+        self.betas[:] = fiber.get_betas(pulse, z)
+        self._gamma = fiber.gamma(z)
+        self.betas[:] = fftshift(self.betas)
 
     def propagate(self, pulse: Pulse, fiber: FiberInstance, n_steps: int, *, output_power: float = 1.0, reload: bool = False, thread: bool = False):
         z_pos = np.linspace(0, fiber.length, n_steps + 1)
@@ -272,15 +282,16 @@ class SSFM:
 
         pulse_out = Pulse()
         pulse_out.clone_pulse(pulse)
-
         self.setup_fftw(pulse, fiber, output_power)
-        
+        self.load_fiber_parameters(pulse, fiber, output_power)
+
         for i in range(n_steps):
             self.integrate_over_dz(delta_z)
             aw[:,i] = ifftshift(self.FFT_t(self.a))
             at[:,i] = ifftshift(self.a)
             pulse_out.at = ifftshift(self.a)
         pulse_out.at = ifftshift(self.a)
+        
         return z_pos, aw, at, pulse_out
     
     def calculate_coherance(self, pulse: Pulse, fiber: FiberInstance, *,
@@ -294,7 +305,7 @@ class SSFM:
 
             result = self.propagate(_pulse, fiber, n_steps)
 
-            reuslts.append(result)
+            results.append(result)
 
         for n1, (y, e1, at, pulse_in, pulse_out) in enumerate(results):
             for n2, (y, e2, at, pulse_in, pulse_out) in enumerate(results):

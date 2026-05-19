@@ -230,9 +230,7 @@ class Pulse:
         self.time_window_ps = (self._n / val) * 1e12
 
     def calc_epp(self) -> npt.NDArray[np.float64]:
-        if self._at is None:
-            self._at = self.at
-        return self.dT_s * np.trapezoid(np.abs(self._at)**2)
+        return self.dT_s * np.trapezoid(np.abs(self.at)**2)
     
     def set_epp(self, epp_J: float):
         self.at = self._at * np.sqrt(epp_J / self.calc_epp())

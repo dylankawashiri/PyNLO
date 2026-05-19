@@ -201,7 +201,7 @@ class dfg_problem:
         """ Following Eqn (8) in Seres & Hebling, "Nonstationary theory of 
             synchronously pumped femtosecond optical parametric oscillators", 
             JOSA B Vol 17 No 5, 2000. A call to this function updates the 
-            :math: `\chi_3` mixing terms used for four-wave mixing.
+            :math: `chi_3` mixing terms used for four-wave mixing.
             
             Parameters
             ----------

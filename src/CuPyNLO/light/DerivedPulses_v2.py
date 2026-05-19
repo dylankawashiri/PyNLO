@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from scipy.interpolate import interp1d
 
-from CuPyNLO.util.pynlo_ffts import IFFT_t
 from CuPyNLO.light.PulseBase_v2 import Pulse
 
 class SechPulse(Pulse):
