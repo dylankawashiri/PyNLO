@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import numpy as np
+import cupy as np
 
 from CuPyNLO.light.PulseBase_v2 import Pulse
 

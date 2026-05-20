@@ -13,6 +13,13 @@ from CuPyNLO.util.pynlo_ffts import IFFT_t
 from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers, JSONFiberLoader # type: ignore
 
 
+def _to_numpy(arr: Any) -> npt.NDArray[np.float64]:
+    """Convert either NumPy or CuPy-like arrays to a NumPy array."""
+    if hasattr(arr, "get"):
+        return np.asarray(arr.get(), dtype=float)
+    return np.asarray(arr, dtype=float)
+
+
 class FiberInstance:
     def __init__(self, *,
                 fiber_db: Collection = Collection.GENERAL_FIBERS,
@@ -43,7 +50,7 @@ class FiberInstance:
         self._fiber_specs: dict[str, str | bool | float | None] = fiber_specs if fiber_specs is not None else {}
         self._poly_order = poly_order
         self._gamma = gamma
-        self._gain: bool = True
+        self._gain: float = 0.0
         self._gain_x_units = None
 
         self._center_wavelength_nm: float | None = None
@@ -117,6 +124,8 @@ class FiberInstance:
 
     def get_betas(self, pulse: Pulse, z: float = 0.0) -> np.ndarray:
         b: npt.NDArray[np.float64] = np.zeros((pulse.n, ), dtype=float)
+        pulse_w = _to_numpy(pulse.W_THz)
+        pulse_v = _to_numpy(pulse.V_THz)
         if self.dispersion_changes_with_z:
             if self.dispersion_function is None:
                 raise ValueError("Dispersion function not set.")
@@ -131,13 +140,13 @@ class FiberInstance:
                                                         np.transpose(np.vstack((self.x, self.y))),
                                                         self._poly_order,
                                                         data_is_file=False)
-                        b = np.array([self._betas[i] / factorial(i+2) * pulse.V_THz**(i+2) for i in range(len(self._betas))], dtype=float)
+                        b = np.array([self._betas[i] / factorial(i+2) * pulse_v**(i+2) for i in range(len(self._betas))], dtype=float)
                         return b
                     if self._fiber_specs["dispersion_format"] == "n":
                         supplied_W_THz = 2.0 * np.pi * 1e-12 * 3e8 / (self.x * 1e-9)
                         supplied_betas = self.y * 2.0 * np.pi / (self.x * 1e-9)
                         interpolator = interpolate.InterpolatedUnivariateSpline(supplied_W_THz[::-1], supplied_betas[::-1])
-                        b = np.array(interpolator(pulse.W_THz), dtype=float)
+                        b = np.array(interpolator(pulse_w), dtype=float)
             else:
                 self._betas = np.array(self.dispersion_function(z))
 
@@ -150,12 +159,12 @@ class FiberInstance:
             betas = self._betas
             for i in range(len(betas)):
                 betas[i] = betas[i]
-                b += betas[i] / factorial(i + 2) * (pulse.W_THz - fiber_omega0)**(i + 2)
+                b += betas[i] / factorial(i + 2) * (pulse_w - fiber_omega0)**(i + 2)
 
         if self._fiber_specs["dispersion_format"] == "GVD" or self._fiber_specs["dispersion_format"] == "n":
-            center_idx = np.argmin(np.abs(pulse.V_THz))
-            slope = np.gradient(b) / np.gradient(pulse.W_THz)
-            b = b - slope[center_idx] * (pulse.V_THz) - b[center_idx]
+            center_idx = np.argmin(np.abs(pulse_v))
+            slope = np.gradient(b) / np.gradient(pulse_w)
+            b = b - slope[center_idx] * pulse_v - b[center_idx]
 
         return b
 
@@ -186,7 +195,7 @@ class FiberInstance:
                     )
 
                     gain_spec: npt.NDArray[np.float64] = np.asarray(
-                        f(pulse.W_Hz / (2.0 * np.pi)),
+                        f(_to_numpy(pulse.W_Hz) / (2.0 * np.pi)),
                         dtype=float,
                     )
 
@@ -219,14 +228,15 @@ class FiberInstance:
 
                     return gain_spec * float(scale_factor.x[0])
                 else:
-                    return np.ones((pulse.n, )) * int(self._gain)
-        return np.zeros((pulse.n, )) * int(self._gain)
+                    return np.ones((pulse.n, )) * self._gain
+        return np.zeros((pulse.n, )) * self._gain
 
     def beta2_to_d(self, pulse: Pulse):
-        return -2.0 * np.pi * self._c / pulse.wavelength_nm**2 * self.beta2(pulse) * 1000
+        wavelength_nm = _to_numpy(pulse.wavelength_nm)
+        return -2.0 * np.pi * self._c / wavelength_nm**2 * self.beta2(pulse) * 1000
     
     def beta2(self, pulse: Pulse):
-        V_THz = pulse.V_THz
+        V_THz = _to_numpy(pulse.V_THz)
         dw = V_THz[1] - V_THz[0]
         out = np.diff(self.get_betas(pulse, 2), 2) / dw**2
         out = np.append(out[0], out)
@@ -234,16 +244,16 @@ class FiberInstance:
         return out
     
     def generate_fiber(self, length: float, center_wavelength_nm: float, betas: np.ndarray, gamma_W_m: float, *,
-                       gain: bool = False, gvd_units: str = "ps^n/m", label: Fibers = Fibers.SIMPLE_FIBER):
-        self.legnth = length
-        self._fiber_specs = {"dispersion_format": "GVD", "is_gain": gain,
+                       gain: float = 0.0, gvd_units: str = "ps^n/m", label: Fibers = Fibers.SIMPLE_FIBER):
+        self.length = length
+        self._fiber_specs = {"dispersion_format": "GVD", "is_gain": bool(gain),
                              "gain_x_data": None}
         self._fiber_type = label
         self._gain = gain
 
         self._center_wavelength_nm = center_wavelength_nm
-        self._betas = np.copy(np.array(betas))
-        self.set_gamma(gamma_W_m)
+        self._betas = np.array(betas, dtype=float, copy=True)
+        self.set_gamma(gamma_W_m) 
 
-        if gvd_units == "ps^n/m":
+        if gvd_units == "ps^n/km":
             self._betas *= 1e-3

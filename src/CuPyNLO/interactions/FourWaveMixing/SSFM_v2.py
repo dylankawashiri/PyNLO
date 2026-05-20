@@ -5,13 +5,17 @@ from CuPyNLO.light.PulseBase_v2 import Pulse, Noise
 from CuPyNLO.media.fibers.fiber_v2 import FiberInstance
 
 from enum import IntEnum
+from tqdm import tqdm
 
-import numpy as np
-from scipy.fft import fftshift, ifftshift, ifft, fft
+# import numpy as np
+# from scipy.fft import fftshift, ifftshift, ifft, fft
+
+import cupy as np
+from cupyx.scipy.fft import fftshift, ifftshift, ifft, fft
 
 from CuPyNLO.util.checker import checker
 
-# NOTE: I am not using pyfftw, CuPy is faster for accelerated, scipy is easier to use
+# NOTE: Using scipy.fft for CPU, but can be replaced with CuPy for GPU acceleration if needed
 
 class Methods(IntEnum):
     SSFM = 1
@@ -97,9 +101,9 @@ class SSFM:
         self.r[:]   = 0.0
         self.r0[:]  = 0.0
 
-        self.omegas[:] = pulse.V_THz
-        self.alpha[:] = -fiber.get_gain(pulse, output_power=output_power)
-        self._gamma = fiber.gamma
+        self.omegas[:] = np.asarray(pulse.V_THz)
+        self.alpha[:] = -np.asarray(fiber.get_gain(pulse, output_power=output_power))
+        self._gamma = fiber.gamma(0)
         self._w0 = pulse.center_frequency_THz * 2.0 * np.pi
 
         self.CalculateRamanResponseFT(pulse)
@@ -117,7 +121,7 @@ class SSFM:
         c = (self.tau1**2 + tau2**2) / (tau1 * tau2**2) 
         self.r0 = np.array([(1.0 - self.f_r) + (self.f_r * (c * tau1 * tau2**2 / (tau1**2 + tau2**2 - 2j * self.omegas[i] * tau1**2 * tau2 - tau1**2 * tau2**2 * self.omegas[i]**2))) for i in range(pulse.n)])
 
-        t = pulse.T_ps
+        t = np.asarray(pulse.T_ps)
         rt = np.zeros(pulse.n, dtype=complex)
 
         if self._use_simple_raman: 
@@ -146,7 +150,8 @@ class SSFM:
     def integrate_over_dz(self, delta_z: float, direction: int = 1):
         dz = self.dz
         factor = 2**(1.0 / self.eta)
-        dist = delta_z
+        # Keep dist as a Python float to avoid mutating caller-provided 0-D arrays.
+        dist = float(delta_z)
 
         return_dz = None
         force = False
@@ -265,7 +270,7 @@ class SSFM:
             return np.linalg.norm(self.af - self.ac)
         
     def load_fiber_parameters(self, pulse: Pulse, fiber: FiberInstance, z: float = 0.0):
-        self.betas[:] = fiber.get_betas(pulse, z)
+        self.betas[:] = np.asarray(fiber.get_betas(pulse, z))
         self._gamma = fiber.gamma(z)
         self.betas[:] = fftshift(self.betas)
 
@@ -273,24 +278,36 @@ class SSFM:
         z_pos = np.linspace(0, fiber.length, n_steps + 1)
         
         if n_steps == 1:
-            delta_z = fiber.length
+            delta_z = float(fiber.length)
         else:
-            delta_z = z_pos[1] - z_pos[0]
+            delta_z = float(z_pos[1] - z_pos[0])
 
         aw = np.zeros((pulse.n, n_steps), dtype=complex)
         at = np.zeros((pulse.n, n_steps), dtype=complex)
 
+        # print ("Pulse energy before", fiber._fiber_type,":", \
+        #       1e9 * pulse.calc_epp(), 'nJ' )
+
         pulse_out = Pulse()
         pulse_out.clone_pulse(pulse)
         self.setup_fftw(pulse, fiber, output_power)
-        self.load_fiber_parameters(pulse, fiber, output_power)
+        self.load_fiber_parameters(pulse, fiber, float(z_pos[0]))
 
-        for i in range(n_steps):
+        for i in tqdm(range(n_steps)):
+            # print ("Step:", i, "Distance remaining:", fiber.length * (1 - float(i)/n_steps) )
+            self.load_fiber_parameters(pulse, fiber, float(z_pos[i]))
+
             self.integrate_over_dz(delta_z)
             aw[:,i] = ifftshift(self.FFT_t(self.a))
             at[:,i] = ifftshift(self.a)
-            pulse_out.at = ifftshift(self.a)
-        pulse_out.at = ifftshift(self.a)
+            pulse_out.at = ifftshift(self.a).get()
+
+            # print ("Pulse energy after:", \
+            #   1e9 * pulse_out.calc_epp(), 'nJ' )
+        pulse_out.at = ifftshift(self.a).get()
+
+        # print ( "Pulse energy after", fiber._fiber_type,":", \
+        #       1e9 * pulse_out.calc_epp(), 'nJ' )
         
         return z_pos, aw, at, pulse_out
     

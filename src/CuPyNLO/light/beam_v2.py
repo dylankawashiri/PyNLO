@@ -4,9 +4,11 @@ from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.crystals.CrystalContainer_v2 import Crystal
 
 
-import numpy as np
+# import numpy as np
 import numpy.typing as npt
 from scipy import constants
+
+import cupy as np
 
 
 class Beam:

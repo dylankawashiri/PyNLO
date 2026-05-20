@@ -3,13 +3,17 @@ from __future__ import annotations
 from enum import Enum
 import logging
 
-import numpy as np
+# import numpy as np
 import numpy.typing as npt
 from scipy import constants # type: ignore
-from scipy.interpolate import interp1d # type: ignore
-from scipy.fft import fft, fftfreq # type: ignore
+# from scipy.interpolate import interp1d
+# from scipy.fft import fft, fftfreq
 
-from CuPyNLO.util.pynlo_ffts import IFFT_t, FFT_t
+# from CuPyNLO.util.pynlo_ffts import IFFT_t, FFT_t
+import cupy as np
+from cupyx.scipy.interpolate import interp1d
+from cupyx.scipy.fft import fft, fftfreq
+from CuPyNLO.util.pynlo_ffts_cupy import IFFT_t, FFT_t
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +79,7 @@ class Pulse:
     @n.setter
     def n(self, val: int):
         self._n = val
+        self._T_ps = np.linspace(-self._time_window_ps / 2.0, self._time_window_ps / 2.0, self._n, endpoint=False)
 
     @property
     def center_frequency_THz(self) -> float:
@@ -99,6 +104,7 @@ class Pulse:
     @time_window_ps.setter
     def time_window_ps(self, val: float):
         self._time_window_ps = val
+        self._T_ps = np.linspace(-self._time_window_ps / 2.0, self._time_window_ps / 2.0, self._n, endpoint=False)
     
     @property
     def time_window_s(self) -> float:
@@ -107,10 +113,11 @@ class Pulse:
     @time_window_s.setter
     def time_window_s(self, val: float):
         self._time_window_ps = val * 1e12
+        self._T_ps = np.linspace(-self._time_window_ps / 2.0, self._time_window_ps / 2.0, self._n, endpoint=False)
 
     @property
     def T_ps(self) -> npt.NDArray[np.float64]:
-        return np.linspace(-self._time_window_ps / 2.0, self._time_window_ps / 2.0, self._n, endpoint=False)
+        return self._T_ps.copy()
 
     @T_ps.setter
     def T_ps(self, val: npt.NDArray[np.float64] | list[float]):
@@ -233,7 +240,7 @@ class Pulse:
         return self.dT_s * np.trapezoid(np.abs(self.at)**2)
     
     def set_epp(self, epp_J: float):
-        self.at = self._at * np.sqrt(epp_J / self.calc_epp())
+        self.at *= np.sqrt(epp_J / self.calc_epp())
 
     def add_noise(self, noise_type: Noise):
         power_per_bin = np.abs(self._aw)**2
@@ -255,12 +262,12 @@ class Pulse:
 
     def chirp_pulse_W(self, gdd: float, *, tod: float = 0.0, fod: float = 0.0, w0_THz: float | None = None):
         if w0_THz is None:
-            v = self._V_THz
+            v = self.V_THz
         else:
             v = self.W_THz - w0_THz
-            self.aw *= np.exp(1j * (gdd / 2.0) * v**2 +
-                             1j * (tod / 6.0) * v**3 +
-                             1j * (fod / 24.0) * v**4)
+        self.aw *= np.exp(1j * (gdd / 2.0) * v**2 +
+                         1j * (tod / 6.0) * v**3 +
+                         1j * (fod / 24.0) * v**4)
     
     def apply_phase_W(self, phase: np.ndarray) -> None:
         self.aw *= np.exp(1j * phase)
