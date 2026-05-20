@@ -23,5 +23,6 @@
 
 
 
-from CuPyNLO.interactions.FourWaveMixing import SSFM
-from . import SSFM
+from CuPyNLO.interactions.FourWaveMixing import SSFM as SSFM
+from CuPyNLO.interactions.FourWaveMixing import SSFM_v2 as SSFM_v2
+# from . import SSFM

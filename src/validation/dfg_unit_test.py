@@ -23,18 +23,21 @@ the analytic solution (from Boyd.) Initial conditions are slightly randomized.
 import numpy as np
 from scipy.constants import speed_of_light
 from pynlo.light.DerivedPulses import CWPulse
-from pynlo.light import DerivedPulses
 from pynlo.media import crystals
 from pynlo.interactions.ThreeWaveMixing import dfg_problem
 from pynlo.util import ode_solve
 from pynlo.util.ode_solve import dopr853
 import unittest
 
+def omega(l_nm: float):
+    return 2.0 * np.pi * speed_of_light / (l_nm * 1.0e-9)
+
 class TestCWDFG(unittest.TestCase):
     def setUp(self):
         pass
     def tearDown(self):
-        pass    
+        pass
+
     def test_fn(self):
         npoints = 2**6
         # Physical lengths are in meters
@@ -73,7 +76,6 @@ class TestCWDFG(unittest.TestCase):
         out  = ode_solve.Output(n_saves)
         
         # From Boyd section 2.8, also my One Note
-        omega = lambda l_nm : 2.0*np.pi*speed_of_light / (l_nm*1.0e-9)
         w_1 = omega(sgnl_wl_nm)
         w_2 = omega(idlr_wl_nm)
         k_1 = np.mean(2*np.pi*crystal.n(sgnl_wl_nm, 'o') / ( sgnl_wl_nm * 1.0e-9))
@@ -81,11 +83,9 @@ class TestCWDFG(unittest.TestCase):
         
         n_1 = crystal.n(sgnl_wl_nm, 'o')
         n_2 = crystal.n(idlr_wl_nm, 'o')
-        n_3 = crystal.n(pump_wl_nm, 'mix')
         
         
         A_3 = np.sqrt(pump_power) * integrand.pump_beam.rtP_to_a(crystal.n(pump_wl_nm, 'mix'))
-        A_1 = np.sqrt(sgnl_power) * integrand.sgnl_beam.rtP_to_a(crystal.n(sgnl_wl_nm, 'o'))
         
         kappa = np.mean(np.sqrt( 4 * crystal.deff**2 * w_1**2 * w_2**2 / (k_1*k_2 * speed_of_light**4)) * A_3)
         
@@ -93,18 +93,11 @@ class TestCWDFG(unittest.TestCase):
                  dopr853.StepperDopr853, integrand, dtype = np.complex128)
         a.integrate()
         
-        pump_out = a.out.ysave[0:a.out.count, 0         : npoints].T
         sgnl_out = a.out.ysave[0:a.out.count, npoints   :   2*npoints].T
         idlr_out = a.out.ysave[0:a.out.count, 2*npoints :   3*npoints].T
         z        = a.out.xsave[0:a.out.count]
         
-        pump_power_in =    np.sum(np.abs(pump_out[:,0]), axis=0)**2
         sgnl_power_in =    np.sum(np.abs(sgnl_out[:,])**2, axis=0)
-        idlr_power_in =    np.sum(np.abs(idlr_out[:,0]), axis=0)**2
-        
-        pump_power_out =    np.sum(np.abs(pump_out[:,-1]))**2
-        sgnl_power_out =    np.sum(np.abs(sgnl_out[:,-1]))**2
-        idlr_power_out =    np.sum(np.abs(idlr_out[:,-1]))**2
             
         # Compare integrated and analytic values for signal power
         numeric_sgnl    = np.sum(np.abs(sgnl_out[:, :])**2, axis=0)
@@ -162,7 +155,7 @@ class TestCW_offset_DFG(unittest.TestCase):
         out  = ode_solve.Output(n_saves)
         
         # From Boyd section 2.8, also my One Note
-        omega = lambda l_nm : 2.0*np.pi*speed_of_light / (l_nm*1.0e-9)
+
         w_1 = omega(sgnl_wl_nm)
         w_2 = omega(idlr_wl_nm)
         k_1 = np.mean(2*np.pi*crystal.n(sgnl_wl_nm, 'o') / ( sgnl_wl_nm * 1.0e-9))
@@ -170,11 +163,9 @@ class TestCW_offset_DFG(unittest.TestCase):
         
         n_1 = crystal.n(sgnl_wl_nm, 'o')
         n_2 = crystal.n(idlr_wl_nm, 'o')
-        n_3 = crystal.n(pump_wl_nm, 'mix')
         
         
         A_3 = np.sqrt(pump_power) * integrand.pump_beam.rtP_to_a(crystal.n(pump_wl_nm, 'mix'))
-        A_1 = np.sqrt(sgnl_power) * integrand.sgnl_beam.rtP_to_a(crystal.n(sgnl_wl_nm, 'o'))
         
         kappa = np.mean(np.sqrt( 4 * crystal.deff**2 * w_1**2 * w_2**2 / (k_1*k_2 * speed_of_light**4)) * A_3)
         
@@ -182,18 +173,11 @@ class TestCW_offset_DFG(unittest.TestCase):
                  dopr853.StepperDopr853, integrand, dtype = np.complex128)
         a.integrate()
         
-        pump_out = a.out.ysave[0:a.out.count, 0         : npoints].T
         sgnl_out = a.out.ysave[0:a.out.count, npoints   :   2*npoints].T
         idlr_out = a.out.ysave[0:a.out.count, 2*npoints :   3*npoints].T
         z        = a.out.xsave[0:a.out.count]
         
-        pump_power_in =    np.sum(np.abs(pump_out[:,0]))**2
         sgnl_power_in =    np.sum(np.abs(sgnl_out[:,0]))**2
-        idlr_power_in =    np.sum(np.abs(idlr_out[:,0]))**2
-        
-        pump_power_out =    np.sum(np.abs(pump_out[:,-1]))**2
-        sgnl_power_out =    np.sum(np.abs(sgnl_out[:,-1]))**2
-        idlr_power_out =    np.sum(np.abs(idlr_out[:,-1]))**2
             
         # Compare integrated and analytic values for signal power
         numeric_sgnl    = np.sum(np.abs(sgnl_out[:, :])**2, axis=0)

@@ -22,4 +22,4 @@
 #-----------------------------------------------------------------------
 
 
-from CuPyNLO.interactions.ThreeWaveMixing.DFG_integrand import dfg_problem
+from CuPyNLO.interactions.ThreeWaveMixing.DFG_integrand import dfg_problem as dfg_problem

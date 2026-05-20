@@ -1,29 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 23 09:40:41 2015
-This file is part of pyNLO.
-
-    pyNLO is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    pyNLO is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
-@author: ycasg
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import annotations
 
 import numpy as np
-from scipy import constants, misc, signal, integrate
+from scipy import constants, signal, integrate  # type: ignore[import]
 
+from CuPyNLO.light.PulseBase import Pulse
+
+def w_of_l(x: float) -> float:
+    return 2.0*np.pi*constants.speed_of_light / (x*1.0e-9)
 
 class TreacyCompressor:
     """ This class calculates the effects of a grating-based pulse compressor,
@@ -66,20 +49,20 @@ class TreacyCompressor:
     d = 0.0 # grating period (meters)
     g = 0.0 # incident beam angle wrt grating
     
-    def __init__(self, lines_per_mm, incident_angle_degrees):
+    def __init__(self, lines_per_mm: float, incident_angle_degrees: float):
         """ Initialize with the two parameters intrinsic to the grating, the
             ruling density and design angle of incidence. """
         self.d = 1.0e-3 / lines_per_mm
         self.g = incident_angle_degrees * 2.0*np.pi / 360.0
         
-    def calc_theta(self, wavelength_nm, display_angle = False):
-        l = wavelength_nm * 1.0e-9
+    def calc_theta(self, wavelength_nm: float, display_angle: bool = False):
+        ll = wavelength_nm * 1.0e-9
         # First solve the grating equation {3} for the diffracted angle
-        if np.any((l/self.d  - np.sin(self.g))< -1) or np.any((l/self.d  - np.sin(self.g)) > 1):
+        if np.any((ll/self.d  - np.sin(self.g))< -1) or np.any((ll/self.d  - np.sin(self.g)) > 1):
             print( "Bad value for argument of arcsin: ",\
-                l/self.d  - np.sin(self.g),'. You are probably asking for diffraction of an impossible color (this wavelength is ',l*1e9,'nm. Coercing to [-1,1].' )
-        val = l/self.d  - np.sin(self.g)
-        if type(val) == np.ndarray:
+                ll/self.d  - np.sin(self.g),'. You are probably asking for diffraction of an impossible color (this wavelength is ',ll*1e9,'nm. Coercing to [-1,1].' )
+        val = ll/self.d  - np.sin(self.g)
+        if type(val) is np.ndarray:
             val[val>1] = 1
             val[val<-1] = -1
 
@@ -90,23 +73,23 @@ class TreacyCompressor:
         # Calculate theta from {4}:
         theta = self.g-alpha
         return theta
-    def calc_dt_dw_singlepass(self, wavelength_nm,
-                              grating_separation_meters,
-                              verbose = False):
+
+    def calc_dt_dw_singlepass(self, wavelength_nm: float,
+                              grating_separation_meters: float,
+                              verbose: bool = False):
         c = constants.speed_of_light
         G = grating_separation_meters
-        l = wavelength_nm * 1.0e-9         
-        w = 2.0 * np.pi * c / l        
+        w = 2.0 * np.pi * c / (wavelength_nm * 1.0e-9)
         theta = self.calc_theta(wavelength_nm, display_angle = verbose)
         gamma = self.g
         b = G / np.cos(gamma - theta)
         
         return (-4.0 * np.pi**2 * c * b)/ (w**3 * self.d**2 *
                 (1.0 - (2.0*np.pi*c/(w*self.d) - np.sin(gamma))**2 ))
-                
-    def calc_dphi_domega(self, omega,
-                              grating_separation_meters,
-                              verbose = False):        
+
+    def calc_dphi_domega(self, omega: float,
+                              grating_separation_meters: float,
+                              verbose: bool = False):        
         c = constants.speed_of_light
         wavelength_nm = 1.0e9*2.0 * np.pi * c / omega
         G = grating_separation_meters
@@ -115,54 +98,63 @@ class TreacyCompressor:
         b = G / np.cos(gamma - theta)
         p = b*(1.+np.cos(theta))
         return p/c
-        
-    def calc_compressor_gdd(self, wavelength_nm, grating_separation_meters):
+
+    def calc_compressor_gdd(self, wavelength_nm: float, grating_separation_meters: float):
         return 2.0 * self.calc_dt_dw_singlepass(wavelength_nm,
                                                  grating_separation_meters,
                                                  verbose = False)
     
     
-    def calc_compressor_HOD(self, wavelength_nm, grating_separation_meters, dispersion_order):
+    def calc_compressor_HOD(self, wavelength_nm: float, grating_separation_meters: float, dispersion_order: int) -> float:
         """ Calculate higher order dispersion by taking w - derivatives of
-            dt/dw """        
-        if dispersion_order < 3:
-            raise ValueError('Order must be > 2. For TOD, specify 3.')
-        w_of_l = lambda x: 2.0*np.pi*constants.speed_of_light / (x*1.0e-9)
-        l_of_w = lambda x: 1.0e9*2.0*np.pi*constants.speed_of_light / x
+            dt/dw """
         
-        fn = lambda x:self.calc_compressor_gdd(l_of_w(x), grating_separation_meters)        
-        return misc.derivative(fn, 
-                                      w_of_l(wavelength_nm),
-                                      n     = dispersion_order - 2,
-                                      dx    = 2.0*np.pi*100.0e6, # Use dx = 100 MHz
-                                      order = 101 ) # Why not use 101's order?
+        raise NotImplementedError("Working on update...")
+        # if dispersion_order < 3:
+        #     raise ValueError('Order must be > 2. For TOD, specify 3.')
+
+        # def l_of_w(x: float) -> float: 
+        #     return 1.0e9*2.0*np.pi*constants.speed_of_light / x
+
+        # def fn(x: float) -> float:
+        #     return self.calc_compressor_gdd(l_of_w(x), grating_separation_meters)
+           
+        # return differentiate.derivative(fn,  # type: ignore
+        #                               w_of_l(wavelength_nm),
+        #                               n     = dispersion_order - 2,
+        #                               step_factor    = 2.0*np.pi*100.0e6, # Use dx = 100 MHz
+        #                               order = 101 ) # Why not use 101's order?
     
     
-    def calc_compressor_dnphi_domega_n(self, wavelength_nm, grating_separation_meters, dispersion_order):
+    def calc_compressor_dnphi_domega_n(self, wavelength_nm: float, grating_separation_meters: float, dispersion_order: int):
         """ Calculate higher order dispersion by taking w - derivatives of
             dt/dw """        
         if dispersion_order < 1:
             raise ValueError('Order must be > 2. For GDD, specify 1.')
-        w_of_l = lambda x: 2.0*np.pi*constants.speed_of_light / (x*1.0e-9)    
-        fn = lambda x:self.calc_dphi_domega(x, grating_separation_meters)        
+
+        def fn(x: np.ndarray):
+            return self.calc_dphi_domega(x, grating_separation_meters)    
+
         w0 = w_of_l(wavelength_nm)        
         ws = np.linspace(w0 - 10.0e12,w0 + 10.0e12, 101) 
         dphidw = fn(ws)        
-        y = signal.savgol_filter(dphidw, window_length = 11,
+        y = signal.savgol_filter(dphidw, window_length = 11, # type: ignore
                              polyorder = 7, deriv = dispersion_order)
         dw = (ws[1] - ws[0])*10**(-15*(1+dispersion_order))
         return y[50]/(dw**dispersion_order)
     
     
-    def apply_phase_to_pulse(self, grating_separation_meters, pulse):
+    def apply_phase_to_pulse(self, grating_separation_meters: float, pulse: Pulse):
         """ Apply grating disersion (all orders) to a Pulse instance. Phase is
             computed by numerical integration of dphi/domega (from Treacy) """
         w0 = pulse.center_frequency_THz * 2.0*np.pi*1.0e12
-        integrand = lambda x: 2.0 * self.calc_dphi_domega(x, grating_separation_meters)
-        calc_phase = lambda x:integrate.quad(integrand, w0, x, 
-                                             epsabs = 1.0e-8,epsrel = 1.0e-8,)[0]
+        def integrand(x: float):
+            return 2.0 * self.calc_dphi_domega(x, grating_separation_meters)
+
+        def calc_phase(x: float) -> float:
+            return integrate.quad(integrand, w0, x, epsabs = 1.0e-8,epsrel = 1.0e-8,)[0] # type: ignore
+
         vec_calc_phase = np.vectorize(calc_phase)
         phase = vec_calc_phase(pulse.W_mks)
         groupdelay = np.polyder(np.polyfit(pulse.W_mks, phase, 2))[0]
         pulse.apply_phase_W(phase + pulse.V_mks * groupdelay)
-        

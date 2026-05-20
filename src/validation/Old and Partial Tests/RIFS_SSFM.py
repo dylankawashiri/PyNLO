@@ -20,9 +20,9 @@ This file is part of pyNLO.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from SSFM import SSFM
-from fiber import Fiber
-from pulse import Pulse
+from CuPyNLO.interactions.FourWaveMixing import SSFM
+from CuPyNLO.media.fibers.fiber import FiberInstance as Fiber
+from CuPyNLO.light.DerivedPulses import Pulse
 #from fftw_transforms import fftcomputer as fftw
 #from scipy import fftpack
 
@@ -40,7 +40,7 @@ D = 4 # ps / km / nm
 beta2 = -2 * np.pi * fiber1.c / centerwl**2 * D
 beta3 = 0.1
 betas = [beta2, beta3]
-print betas
+print(betas)
 P0 = abs(betas[0] * 1e-3) / gamma / T0**2
 init = Pulse(n = 2**14)
 init.gen_sech(P0, T0, centerwl, time_window=25)

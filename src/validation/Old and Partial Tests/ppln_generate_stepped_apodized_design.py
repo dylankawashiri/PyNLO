@@ -19,8 +19,7 @@ This file is part of pyNLO.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pynlo.media.crystals.XTAL_PPLN import PPLN
-from scipy import integrate
+from CuPyNLO.media.crystals.XTAL_PPLN import PPLN
 
 plt.close('all')
 
@@ -36,18 +35,11 @@ NPTS = 1000
 mix_bw =  crystal.calculate_mix_phasematching_bw(1064, np.linspace(1300, sgnl_stop_wl,NPTS))
 idler =   1.0/(1.0/1064 - 1.0/np.linspace(1300, sgnl_stop_wl,NPTS))
 
-print crystal.invert_dfg_qpm_to_signal_wl(1064, 24e-6)
+print(crystal.invert_dfg_qpm_to_signal_wl(1064, 24e-6))
 
 # ODE for finding 'ideal' QPM structure
-# dLambda/dz = 1/phasematching BW
-# scale = 4.65e-9 # for propto BW
-#scale = 1.3e5 # for propto 1/BW
 scale = 7e-6 / (1e3*crystallength) # for linear chirp 10 um / crystal length
 def dLdz(L, z):
-    signal = crystal.invert_dfg_qpm_to_signal_wl(pump_wl, L)
-    bw = crystal.calculate_mix_phasematching_bw(pump_wl, signal)
-    #return 1.0/(scale*bw)
-    #return (scale*bw)
     return scale
 
 z = 0
@@ -59,16 +51,16 @@ while L > 24.5e-6:
     signal = crystal.invert_dfg_qpm_to_signal_wl(pump_wl, L)
     bw_invm_m = crystal.calculate_mix_phasematching_bw(pump_wl, signal)
     optical_bw = bw_invm_m / period_len 
-    print optical_bw
+    print(optical_bw)
     z += period_len
     signal2 = 1.0e9/ ( 1/(signal*1e-9) + optical_bw)
-    print "signal %f->%f"%(signal, signal2)
+    print("signal %f->%f"%(signal, signal2))
     L = crystal.calculate_poling_period(pump_wl, signal2, None)[0]
-    print L
+    print(L)
     design.append([z+period_len/2,L])    
     
 design = np.array(design)
-print design
+print(design)
 
 # Following  Journal of the Optical Society of America B Vol. 26, Issue 12, pp. 2315-2322 (2009) 
 # doi: 10.1364/JOSAB.26.002315 

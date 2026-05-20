@@ -20,9 +20,9 @@ This file is part of pyNLO.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from pynlo.interactions.FourWaveMixing import SSFM
-from pynlo.media.fibers import fiber
-from pynlo.light.DerivedPulses import SechPulse
+from CuPyNLO.interactions.FourWaveMixing import SSFM
+from CuPyNLO.media.fibers import fiber
+from CuPyNLO.light.DerivedPulses import SechPulse
 
 #plt.close('all')
 

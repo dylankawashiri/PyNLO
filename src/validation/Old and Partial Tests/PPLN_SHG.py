@@ -18,16 +18,14 @@ This file is part of pyNLO.
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
-from pynlo.light.pulseclass import Pulse
-from pynlo.media.crystals.PPLN import PPLN
-from pynlo.interactions.ThreeWaveMixing import dfg_problem
-from pynlo.util import ode_solve
-from pynlo.util.ode_solve import dopr853
+from CuPyNLO.light.pulseclass import Pulse
+from CuPyNLO.media.crystals.PPLN import PPLN
+from CuPyNLO.interactions.ThreeWaveMixing import dfg_problem
+from CuPyNLO.util import ode_solve
+from CuPyNLO.util.ode_solve import dopr853
 
 from gnlse_ffts import IFFT_t
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 plt.close('all')
 
@@ -70,35 +68,35 @@ a = ode_solve.ODEint(integrand.ystart, x0, x1, atol, rtol, h1,hmin, out,\
          dopr853.StepperDopr853, integrand)
 a.integrate()
 
-print 'integrated!'
+print('integrated!')
 
 pump_out = a.out.ysave[0:a.out.count, 0         : npoints].T
 sgnl_out = a.out.ysave[0:a.out.count, npoints   :   2*npoints].T
 idlr_out = a.out.ysave[0:a.out.count, 2*npoints :   3*npoints].T
 z        = a.out.xsave[0:a.out.count]
 
-pump_power_in =    np.round(1e3 * np.trapz(abs(IFFT_t(pump_out[:,0]))**2,
+pump_power_in =    np.round(1e3 * np.trapezoid(abs(IFFT_t(pump_out[:,0]))**2,
                             pump_in.T) * pump_in.frep, decimals = 4)
-signal_power_in =  np.round(1e3 * np.trapz(abs(IFFT_t(sgnl_out[:,0]))**2,
+signal_power_in =  np.round(1e3 * np.trapezoid(abs(IFFT_t(sgnl_out[:,0]))**2,
                             sgnl_in.T) * sgnl_in.frep, decimals = 4)
-idler_power_in =   np.round(1e3 * np.trapz(abs(IFFT_t(idlr_out[:,0]))**2,
+idler_power_in =   np.round(1e3 * np.trapezoid(abs(IFFT_t(idlr_out[:,0]))**2,
                             idlr_in.T) * idlr_in.frep, decimals = 4)
-pump_power_out =   np.round(1e3 * np.trapz(abs(IFFT_t(pump_out[:,-1]))**2,
+pump_power_out =   np.round(1e3 * np.trapezoid(abs(IFFT_t(pump_out[:,-1]))**2,
                             pump_in.T) * sgnl_in.frep, decimals = 4)
-signal_power_out = np.round(1e3 * np.trapz(abs(IFFT_t(sgnl_out[:,-1]))**2,
+signal_power_out = np.round(1e3 * np.trapezoid(abs(IFFT_t(sgnl_out[:,-1]))**2,
                             sgnl_in.T) * sgnl_in.frep, decimals = 4)
-idler_power_out =  np.round(1e3 * np.trapz(abs(IFFT_t(idlr_out[:,-1]))**2,
+idler_power_out =  np.round(1e3 * np.trapezoid(abs(IFFT_t(idlr_out[:,-1]))**2,
                             idlr_in.T) * sgnl_in.frep, decimals = 4)
                             
-print "pump power in: ",    pump_power_in, "mW"                           
-print "signal power in: ",  signal_power_in, "mW"                           
-print "idler power in: ",   idler_power_in, "mW"                           
-print "pump power out: ",   pump_power_out, "mW"                           
-print "signal power out: ", signal_power_out, "mW"                           
-print "idler power out: ",  idler_power_out, "mW"    
+print("pump power in: ",    pump_power_in, "mW")
+print("signal power in: ",  signal_power_in, "mW")
+print("idler power in: ",   idler_power_in, "mW")
+print("pump power out: ",   pump_power_out, "mW")
+print("signal power out: ", signal_power_out, "mW")
+print("idler power out: ",  idler_power_out, "mW")
 
 plt.figure()
-for x in xrange(len(pump_out[:,0])):
+for x in range(len(pump_out[:,0])):
     plt.plot(np.abs(sgnl_out[:, x]))
 plt.show()
 

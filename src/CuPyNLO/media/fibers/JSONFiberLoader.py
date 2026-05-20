@@ -21,13 +21,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import jsonpickle
+import jsonpickle # type: ignore
 import os
+from enum import Enum
+
+class Collection(Enum):
+    GENERAL_FIBERS = "general_fibers"
+
+class Fibers(Enum):
+    SIMPLE_FIBER = "Simple Fiber"
 
 class JSONFiberLoader:
     """ Load fiber parameters from pickle file. """
     fiber_names = None
-    def __init__(self, fiber_collection="general_fibers", file_dir = None):
+    def __init__(self, fiber_collection: str = "general_fibers", file_dir: str | None = None):
         """ Initialize by reading pickles fiber parameters. If you have a pickle
         containing your own fiber types, change general_fibers to your own
         (.pickle will be appended.)"""
@@ -40,14 +47,15 @@ class JSONFiberLoader:
         data= file_handle.read()
         self.fibers = jsonpickle.decode(data)
         file_handle.close()
+
     def print_fiber_list(self):
         """ Print list of all fibers in database. """
         self.fiber_names = []
         for each in self.fibers.keys():
             print ( 'fiber: ',each )
             self.fiber_names.append(each)
-    def get_fiber(self, name):
+
+    def get_fiber(self, name: str) -> dict[str, str | list[int] | float]:
         """ Retrieve fiber parameters for fiber "name" """
         fiberspecs = self.fibers[name]
         return fiberspecs
-        

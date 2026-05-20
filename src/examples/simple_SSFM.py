@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pynlo
+import CuPyNLO
 
 FWHM    = 0.050  # pulse duration (ps)
 pulseWL = 1550   # pulse central wavelength (nm)
@@ -40,7 +40,7 @@ ax3 = plt.subplot2grid((3,2), (1, 1), rowspan=2, sharex=ax1)
 ######## This is where the PyNLO magic happens! ############################
 
 # create the pulse!
-pulse = pynlo.light.DerivedPulses.SechPulse(power = 1, # Power will be scaled by set_epp
+pulse = CuPyNLO.light.DerivedPulses.SechPulse(power = 1, # Power will be scaled by set_epp
                                             T0_ps                   = FWHM/1.76, 
                                             center_wavelength_nm    = pulseWL, 
                                             time_window_ps          = Window,
@@ -52,12 +52,12 @@ pulse = pynlo.light.DerivedPulses.SechPulse(power = 1, # Power will be scaled by
 pulse.set_epp(EPP) 
 
 # create the fiber!
-fiber1 = pynlo.media.fibers.fiber.FiberInstance()
+fiber1 = CuPyNLO.media.fibers.fiber.FiberInstance()
 fiber1.generate_fiber(Length * 1e-3, center_wl_nm=fibWL, betas=(beta2, beta3, beta4),
                               gamma_W_m=Gamma * 1e-3, gvd_units='ps^n/km', gain=-alpha)
                                 
 # Propagation
-evol = pynlo.interactions.FourWaveMixing.SSFM.SSFM(local_error=0.005, USE_SIMPLE_RAMAN=True,
+evol = CuPyNLO.interactions.FourWaveMixing.SSFM.SSFM(local_error=0.005, USE_SIMPLE_RAMAN=True,
                  disable_Raman              = np.logical_not(Raman), 
                  disable_self_steepening    = np.logical_not(Steep))
 

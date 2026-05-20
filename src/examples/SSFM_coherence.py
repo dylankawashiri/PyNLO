@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pynlo
 import matplotlib.cm as cm
-import scipy.signal
 
 pulseWL = 1550   # pulse central wavelength (nm)
 

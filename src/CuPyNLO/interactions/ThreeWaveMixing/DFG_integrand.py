@@ -17,20 +17,21 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import scipy.fftpack as fftpack
+import scipy.fftpack as fftpack  # type: ignore[import]
 from copy import deepcopy
-from scipy import constants
+from scipy import constants  # type: ignore[import]
 from CuPyNLO.light import OneDBeam, OneDBeam_highV_WG
 from CuPyNLO.light.DerivedPulses import NoisePulse
-from CuPyNLO.light.PulseBase import Pulse
 from matplotlib import pyplot as plt
 import logging
 
+pyfftw = None
+pyfftw_available=False
 try:
-    import pyfftw
-    PYFFTW_AVAILABLE=True
-except:
-    PYFFTW_AVAILABLE=False
+    import pyfftw  # type: ignore[import]
+    pyfftw_available=True
+except ModuleNotFoundError:
+    pyfftw_available=False
 
 
 class dfg_problem:     
@@ -69,7 +70,7 @@ class dfg_problem:
         the effect of Gouy phase seems small so it might not be worthwhile.) """
         self._wg_mode = wg_mode
         
-        if self._wg_mode == False:
+        if not self._wg_mode:
             self.waist = pump_waist
             self._plot_beam_overlaps = plot_beam_overlaps    
             self._calc_gouy = apply_gouy_phase
@@ -122,7 +123,7 @@ class dfg_problem:
         if not pump_in.NPTS == sgnl_in.NPTS == idlr_in.NPTS:
             raise ValueError("""Pump, signal, and idler do not have
                                             same length.""")
-        if self._wg_mode == False:
+        if not self._wg_mode:
             if self.crystal.mode == 'BPM':
                 self.pump_beam = OneDBeam(self.waist, this_pulse = self.pump, axis = 'mix')
                 self.pump_beam.set_waist_to_match_central_waist(self.pump, self.waist, self.crystal)
@@ -200,7 +201,7 @@ class dfg_problem:
         """ Following Eqn (8) in Seres & Hebling, "Nonstationary theory of 
             synchronously pumped femtosecond optical parametric oscillators", 
             JOSA B Vol 17 No 5, 2000. A call to this function updates the 
-            :math: `\chi_3` mixing terms used for four-wave mixing.
+            :math: `chi_3` mixing terms used for four-wave mixing.
             
             Parameters
             ----------
@@ -323,7 +324,7 @@ class dfg_problem:
             self.gen_jl(y)
 
     
-        if self._wg_mode == False:
+        if not self._wg_mode:
             waist_p = self.pump_beam.calculate_waist(z_to_focus, n_s = self.n_p)
             waist_s = self.sgnl_beam.calculate_waist(z_to_focus, n_s = self.n_s)
             waist_i = self.idlr_beam.calculate_waist(z_to_focus, n_s = self.n_i)
@@ -347,7 +348,7 @@ class dfg_problem:
         # is to match confocal parameters (which is done in __init__, above).
         # Overlap integrals are left intact, in case we want to plot them.
 
-        if self._wg_mode == False:
+        if not self._wg_mode:
             if (np.mean(waist_p) <= np.mean(waist_s)) and (np.mean(waist_p) <= np.mean(waist_i)):            
                 self.pump_P_to_a = self.pump_beam.rtP_to_a_2(self.pump,self.crystal,z_to_focus)
                 self.sgnl_P_to_a = self.sgnl_beam.rtP_to_a_2(self.sgnl, self.crystal, None, waist_p)
@@ -579,7 +580,7 @@ class dfg_results_interface:
 class fftcomputer:
     def __init__(self, gridsize):
         self.gridsize = gridsize
-        if PYFFTW_AVAILABLE:
+        if pyfftw_available:
             self.corrin = pyfftw.empty_aligned(gridsize*2,'complex128')
             self.corrtransfer = pyfftw.empty_aligned(gridsize*2,'complex128')
             self.fft = pyfftw.FFTW(self.corrin,self.corrtransfer,direction='FFTW_FORWARD')

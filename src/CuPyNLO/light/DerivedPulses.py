@@ -22,15 +22,15 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d # type: ignore
 from CuPyNLO.util import IFFT_t
 from CuPyNLO.light.PulseBase import Pulse
 
 class SechPulse(Pulse):
-    def __init__(self, power, T0_ps, center_wavelength_nm,
-                 time_window_ps = 10., frep_MHz = 100., NPTS = 2**10, 
-                 GDD = 0, TOD = 0, chirp2 = 0, chirp3 = 0,
-                 power_is_avg = False):
+    def __init__(self, power: float, T0_ps: float, center_wavelength_nm: float,
+                 time_window_ps: float = 10., frep_MHz: float = 100., NPTS: int = 2**10, 
+                 GDD: float = 0.0, TOD: float = 0, chirp2: float = 0, chirp3: float = 0,
+                 power_is_avg: bool = False):
         """Generate a squared-hyperbolic secant "sech" pulse 
                  A(t) = sqrt(P0 [W]) * sech(t/T0 [ps])
         centered at wavelength center_wavelength_nm (nm).

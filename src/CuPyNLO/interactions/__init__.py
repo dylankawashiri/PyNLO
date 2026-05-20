@@ -21,5 +21,5 @@
 # Evolution of the pulse through the material
 #-----------------------------------------------------------------------
 
-from . import FourWaveMixing
-from . import ThreeWaveMixing
+from . import FourWaveMixing as FourWaveMixing
+from . import ThreeWaveMixing as ThreeWaveMixing

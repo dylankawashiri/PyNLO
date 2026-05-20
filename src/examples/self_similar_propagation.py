@@ -50,7 +50,7 @@ AT = np.complex64(np.copy(AW))
 
 y, AW, AT, pulse_out = evol.propagate(pulse_in = init, fiber = fiber1, 
                                          n_steps = steps)
-print pulse_out.calc_epp()
+print(pulse_out.calc_epp())
 wl = init.wl_nm 
 
 loWL = 1000
