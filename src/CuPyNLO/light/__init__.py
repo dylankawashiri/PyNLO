@@ -11,4 +11,5 @@ from . import beam as beam
 from . import DerivedPulses as DerivedPulses
 from . import DerivedPulses_v2 as DerivedPulses_v2
 from . import PulseBase as PulseBase
+from . import PulseBase_v2 as PulseBase_v2
 from .high_V_waveguide import OneDBeam_highV_WG as OneDBeam_highV_WG

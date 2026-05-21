@@ -274,6 +274,14 @@ class SSFM:
         self._gamma = fiber.gamma(z)
         self.betas[:] = fftshift(self.betas)
 
+    def propagate_step(self, step: int, pulse: Pulse, fiber: FiberInstance, dz: float, direction: int = 1):
+        self.load_fiber_parameters(pulse, fiber)
+        self.integrate_over_dz(dz, direction)
+        aw = ifftshift(self.FFT_t(self.a))
+        at = ifftshift(self.a)
+        pulse.at = ifftshift(self.a).get()
+        return aw, at, pulse
+
     def propagate(self, pulse: Pulse, fiber: FiberInstance, n_steps: int, *, output_power: float = 1.0, reload: bool = False, thread: bool = False):
         z_pos = np.linspace(0, fiber.length, n_steps + 1)
         
@@ -294,16 +302,19 @@ class SSFM:
         self.load_fiber_parameters(pulse, fiber, float(z_pos[0]))
 
         for i in tqdm(range(n_steps)):
-            # print ("Step:", i, "Distance remaining:", fiber.length * (1 - float(i)/n_steps) )
-            self.load_fiber_parameters(pulse, fiber, float(z_pos[i]))
+            aw[:,i], at[:,i], pulse_out = self.propagate_step(i, pulse_out, fiber, delta_z)
 
-            self.integrate_over_dz(delta_z)
-            aw[:,i] = ifftshift(self.FFT_t(self.a))
-            at[:,i] = ifftshift(self.a)
-            pulse_out.at = ifftshift(self.a).get()
+        # for i in tqdm(range(n_steps)):
+        #     # print ("Step:", i, "Distance remaining:", fiber.length * (1 - float(i)/n_steps) )
+        #     self.load_fiber_parameters(pulse, fiber, float(z_pos[i]))
 
-            # print ("Pulse energy after:", \
-            #   1e9 * pulse_out.calc_epp(), 'nJ' )
+        #     self.integrate_over_dz(delta_z)
+        #     aw[:,i] = ifftshift(self.FFT_t(self.a))
+        #     at[:,i] = ifftshift(self.a)
+        #     pulse_out.at = ifftshift(self.a).get()
+
+        #     # print ("Pulse energy after:", \
+        #     #   1e9 * pulse_out.calc_epp(), 'nJ' )
         pulse_out.at = ifftshift(self.a).get()
 
         # print ( "Pulse energy after", fiber._fiber_type,":", \
