@@ -3,12 +3,17 @@ from __future__ import annotations
 from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.crystals.CrystalContainer_v2 import Crystal
 
+import logging
 
-# import numpy as np
 import numpy.typing as npt
 from scipy import constants
 
-import cupy as np
+logger = logging.getLogger(__name__)
+
+try:
+    import cupy as np
+except ModuleNotFoundError:
+    import numpy as np
 
 
 class Beam:

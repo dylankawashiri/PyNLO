@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-import cupy as np
-
 from CuPyNLO.light.PulseBase_v2 import Pulse
+
+try:
+    import cupy as np
+except ModuleNotFoundError:
+    import numpy as np
+
 
 class SechPulse(Pulse):
     def __init__(self, power: float, t0_ps: float, center_wavelength_nm: float, *,

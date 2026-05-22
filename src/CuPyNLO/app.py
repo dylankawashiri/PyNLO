@@ -1,20 +1,31 @@
 import base64
 from collections import deque
 import io
+from multiprocessing import Pool
 from pathlib import Path
 import time
 from typing import Any
 
 import flask
+from flask import Flask, request
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
 import CuPyNLO
 
-app = flask.Flask(__name__)
+app = Flask(__name__)
 
+settings = {"dz": 1e-3,
+            "steps": 100,
+            "centerWl": 835.0,
+            "fiberLength": .15,
+            "pumpPower": 1e4,
+            "pumpPulseLength": 28.4e-3,
+            "nPoints": 2**13}
 
 class Server:
     def __init__(self):
@@ -23,50 +34,43 @@ class Server:
 
     @app.route("/")
     def index():
-        return "Hello, World!"
-    
+        routes = []
+        for route in app.url_map.iter_rules():
+            routes.append(str(route))
+        routes.sort()
+        return flask.jsonify(routes)
+
     @app.route("/api/dudley_ssfm", methods=["GET"])
     def dudley_ssfm():
         def generate():
-            def to_numpy_host(arr: Any) -> np.ndarray:
+            global settings
+            def to_numpy(arr: Any) -> np.ndarray:
                 getter = getattr(arr, "get", None)
                 host_arr = getter() if callable(getter) else arr
                 return np.asarray(host_arr)
 
             step_info = ["Initialize", "Propagate", "Analyze", "Done"]
             step_idx = 0
-
-            dz = 1e-3
-            steps = 100
-            range1 = np.arange(steps)
             
-            center_wavelength_nm = 835.0
-            fiber_length = 0.15
-
-            pump_power_mW = 1.0e4 # Peak power
-            pump_pulse_length_ps = 28.4e-3
-
-            n_points = 2**13
-
             while True:
                 if step_idx == 0:
                     pulse1 = CuPyNLO.light.DerivedPulses_v2.SechPulse(
-                        power=pump_power_mW,
-                        t0_ps=pump_pulse_length_ps,
-                        center_wavelength_nm=center_wavelength_nm,
+                        power=settings["pumpPower"],
+                        t0_ps=settings["pumpPulseLength"],
+                        center_wavelength_nm=settings["centerWl"],
                         time_window_ps=10.0,
                         gdd=0,
                         tod=0.0,
-                        n=n_points,
+                        n=settings["nPoints"],
                         frep_MHz=100.0,
                         power_is_avg=False
                     )
 
                     fiber1 = CuPyNLO.media.fibers.fiber_v2.FiberInstance()
-                    fiber1.load_from_db(fiber_length, "dudley")
+                    fiber1.load_from_db(settings["fiberLength"], "dudley")
 
                     evol = CuPyNLO.interactions.FourWaveMixing.SSFM_v2.SSFM(
-                        dz=dz,
+                        dz=settings["dz"],
                         local_error=0.001,
                         use_simple_raman=True
                     )
@@ -78,11 +82,11 @@ class Server:
 
                 elif step_idx == 1:
 
-                    z_pos = np.linspace(0, fiber1.length, steps + 1)
+                    z_pos = np.linspace(0, fiber1.length, settings["steps"] + 1)
                     delta_z = float(z_pos[1] - z_pos[0])
 
-                    aw = np.zeros((pulse1.n, steps), dtype=complex)
-                    at = np.zeros((pulse1.n, steps), dtype=complex)
+                    aw = np.zeros((pulse1.n, settings["steps"]), dtype=complex)
+                    at = np.zeros((pulse1.n, settings["steps"]), dtype=complex)
 
                     pulse_out = CuPyNLO.light.PulseBase_v2.Pulse()
                     pulse_out.clone_pulse(pulse1)
@@ -91,7 +95,7 @@ class Server:
 
                     deque_time = deque()
 
-                    for i in range(steps):
+                    for i in range(settings["steps"]):
                         start = time.time()
                         aw_step, at_step, pulse_out = evol.propagate_step(
                             step=i,
@@ -103,18 +107,18 @@ class Server:
 
                         # CuPy arrays must be moved explicitly to host before
                         # storing into NumPy buffers used for SSE payloads.
-                        aw[:, i] = to_numpy_host(aw_step)
-                        at[:, i] = to_numpy_host(at_step)
+                        aw[:, i] = to_numpy(aw_step)
+                        at[:, i] = to_numpy(at_step)
 
                         time_taken = time.time() - start
                         deque_time.append(time_taken)
 
                         out1 = {
                             "step": step_info[step_idx],
-                            "message": f"Propagating... Step {i+1}/{steps}",
+                            "message": f"Propagating... Step {i+1}/{settings["steps"]}",
                             "time_taken": float(time_taken),
                             "average_time": float(np.mean(deque_time)),
-                            "estimated_time_remaining": float(np.mean(deque_time) * (steps - i - 1))
+                            "estimated_time_remaining": float(np.mean(deque_time) * (settings["steps"] - i - 1))
                         }
                         yield f"data: {flask.json.dumps(out1)}\n\n"
                     
@@ -124,11 +128,11 @@ class Server:
                     }
                     yield f"data: {flask.json.dumps(out)}\n\n"
                 elif step_idx == 2:
-                    wl = to_numpy_host(pulse_out.wavelength_nm)
-                    t_ps = to_numpy_host(pulse_out.T_ps)
+                    wl = to_numpy(pulse_out.wavelength_nm)
+                    t_ps = to_numpy(pulse_out.T_ps)
 
-                    loWL = 400
-                    hiWL = 1400
+                    loWL = settings["centerWl"] - 400
+                    hiWL = settings["centerWl"] + 400
 
                     iis = np.logical_and(wl > loWL, wl < hiWL)
                     iisT = np.logical_and(t_ps > -1, t_ps < 5)
@@ -145,9 +149,9 @@ class Server:
                     mlIT = np.max(zT)
 
                     d = fiber1.beta2_to_d(pulse_out)
-                    d = to_numpy_host(d)
+                    d = to_numpy(d)
                     beta = fiber1.beta2(pulse_out)
-                    beta = to_numpy_host(beta)
+                    beta = to_numpy(beta)
 
                     fig, ax = plt.subplots(2, 2, figsize=(10, 10), constrained_layout=True)
                     ax[0, 0].plot(wl, d, 'x')
@@ -201,6 +205,12 @@ class Server:
                     break
         return flask.Response(generate(), mimetype="text/event-stream")
     
+    @app.route("/api/dudley_ssfm/settings", methods=["POST"])
+    def dudley_settings():
+        global settings
+        settings = request.get_json()
+        return settings
+
 if __name__ == "__main__":
     server = Server()
     try:

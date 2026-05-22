@@ -10,9 +10,18 @@ from scipy import constants # type: ignore
 # from scipy.fft import fft, fftfreq
 
 # from CuPyNLO.util.pynlo_ffts import IFFT_t, FFT_t
-import cupy as np
-from cupyx.scipy.interpolate import interp1d
-from cupyx.scipy.fft import fft, fftfreq
+try:
+    import cupy as np
+    from cupyx.scipy.interpolate import interp1d
+    from cupyx.scipy.fft import fft, fftfreq
+except ModuleNotFoundError:
+    import numpy as np
+    from scipy.interpolate import interp1d
+    try:
+        from torch.fft import fft, fftfreq
+    except ModuleNotFoundError:
+        from scipy.fft import fft, fftfreq
+
 from CuPyNLO.util.pynlo_ffts_cupy import IFFT_t, FFT_t
 
 logger = logging.getLogger(__name__)

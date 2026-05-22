@@ -9,9 +9,9 @@ from typing import Any, Callable, cast
 
 from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.fibers.calculators_v2 import DTabulationToBetas
-from CuPyNLO.util.pynlo_ffts import IFFT_t
-from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers, JSONFiberLoader # type: ignore
-
+from CuPyNLO.util.pynlo_ffts_cupy import IFFT_t
+# from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers, JSONFiberLoader # type: ignore
+from CuPyNLO.media.fibers.fiber_loader import Collection, Fibers, FiberLoader
 
 def _to_numpy(arr: Any) -> npt.NDArray[np.float64]:
     """Convert either NumPy or CuPy-like arrays to a NumPy array."""
@@ -58,7 +58,7 @@ class FiberInstance:
         self.x = None
         self.y = None
 
-        self.fiberloader = JSONFiberLoader()
+        self.fiberloader = FiberLoader()
 
     def set_dispersion_function(self, dispersion_function: Callable[[float], float] | Callable[[float], npt.NDArray[np.float64]], dispersion_format: str = "GVD"):
         self.dispersion_changes_with_z = True

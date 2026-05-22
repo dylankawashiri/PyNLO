@@ -11,7 +11,8 @@ import * as echarts from 'echarts/core';
 echarts.use(
   [CanvasRenderer]
 );
-import { Button } from '@mui/material';
+import { Button, Card, Grid, TextField, Typography, Checkbox } from '@mui/material';
+import NumberField from './NumberField';
 
 type DudleyStep = 'Initialize' | 'Propagate' | 'Analyze' | 'Done';
 
@@ -22,18 +23,18 @@ type DudleyEvent = {
     wl?: number[];
     d?: number[];
     beta?: number[];
-    vmin_IW?: number;
-    vmax_IW?: number;
-    vmin_IT?: number;
-    vmax_IT?: number;
-    xW?: number[] | Record<string, number>;
-    zW?: number[][] | Record<string, number[]>;
-    xT?: number[] | Record<string, number>;
-    zT?: number[][] | Record<string, number[]>;
-    y?: number[] | Record<string, number>;
     img1?: string;
-    img2?: string;
 };
+
+type Settings = {
+    dz: number;
+    steps: number;
+    centerWl: number;
+    fiberLength: number;
+    pumpPower: number;
+    pumpPulseLength: number;
+    nPoints: number;
+}
 
 export default function Test() {
     const [timeLeft, setTimeLeft] = useState(0);
@@ -43,7 +44,8 @@ export default function Test() {
     const [status, setStatus] = useState('Idle');
     const [enable, setEnable] = useState(false);
     const [img1Data, setImg1Data] = useState<string | null>(null);
-    const [img2Data, setImg2Data] = useState<string | null>(null);
+    const [settings, setSettings] = useState<Settings>({dz: 1e-3, steps: 100, centerWl: 835.0, fiberLength: 0.15, pumpPower: 1.0e4, pumpPulseLength: 28.4e-3, nPoints: 2**13});
+    const [running, setRunning] = useState(false);
 
     useEffect(() => {
         if (!enable) {
@@ -61,6 +63,8 @@ export default function Test() {
                     return;
                 }
 
+                setRunning(true);
+
                 setStatus(data.message ?? data.step);
 
                 if (data.step === "Propagate") {
@@ -70,11 +74,11 @@ export default function Test() {
                     setD(data.d ?? []);
                     setBeta(data.beta ?? []);
                     setImg1Data(`data:image/png;base64,${data.img1 ?? ''}`);
-                    setImg2Data(`data:image/png;base64,${data.img2 ?? ''}`);
 
                 } else if (data.step === 'Done') {
                     source.close();
                     setEnable(false);
+                    setRunning(false);
                 }
             } catch (error) {
                 setEnable(false);
@@ -94,27 +98,78 @@ export default function Test() {
         };
     }, [enable]);
 
+    // Sync settings to server only on initial load
+    useEffect(() => {
+        fetch("http://localhost:2048/api/dudley_ssfm/settings", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(settings),
+        })
+        .catch(error => console.log(error));
+    }, []); // Empty dependency array - runs once on mount
+
+    // Debounced sync when settings change from NumberFields
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetch("http://localhost:2048/api/dudley_ssfm/settings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(settings),
+            })
+            .catch(error => console.log(error));
+        }, 500); // Wait 500ms after last change before syncing
+
+        return () => clearTimeout(timer);
+    }, [settings]);
+
+    const handleChange = (setting: string) => (value: number | null) => {
+        if (value !== null && running === false) {
+            setSettings((prevSettings) => ({
+                ...prevSettings,
+                [setting]: value,
+            }));
+        }
+    };
+
     const option = {
         xAxis: { data: wl },
         yAxis: { type: 'value' },
         series: [{ data: d, type: 'line' }],
     };
 
-    const option2 = {
-        xAxis: { data: wl },
-        yAxis: { type: 'value' },
-        series: [{ data: beta, type: 'line' }],
-    };
-
     return (
-        <div>
-            <Button variant="contained" onClick={() => setEnable(!enable)}>Start</Button>
-            <p>Status: {status}</p>
-            <p>Time left: {timeLeft.toFixed(2)} seconds</p>
-            {/* <ReactECharts option={option} />
-            <ReactECharts option={option2} /> */}
-            {img1Data && <img src={img1Data} alt="Propagation Wavelength" />}
-
-        </div>
+        <Grid container spacing={2}>
+            <Grid size={12}>
+                <Card>
+                <Typography variant='h4'>
+                    <b>Dudley SSFM Simulation</b>
+                </Typography>
+                <Button variant="contained" onClick={() => setEnable(!enable)}>Start</Button>
+                <p>Status: {status}</p>
+                <p>Time left: {timeLeft.toFixed(2)} seconds</p>
+                <Grid container rowSpacing={2} columnSpacing={2}>
+                    {Object.entries(settings).map(([setting, value]) => 
+                        <Grid size={3}>
+                            <NumberField
+                                key={setting}
+                                label={setting}
+                                defaultValue={value}
+                                onValueChange={handleChange(setting)}
+                            />
+                        </Grid>
+                    )}
+                </Grid>
+                <Grid size={12}>
+                    <Card>
+                        {img1Data && <img src={img1Data} alt="Propagation Wavelength" />}
+                    </Card>
+                </Grid>
+            </Card>
+            </Grid>  
+        </Grid>
     );
 }
