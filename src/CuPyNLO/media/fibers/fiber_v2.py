@@ -244,7 +244,7 @@ class FiberInstance:
         return out
     
     def generate_fiber(self, length: float, center_wavelength_nm: float, betas: np.ndarray, gamma_W_m: float, *,
-                       gain: float = 0.0, gvd_units: str = "ps^n/m", label: Fibers = Fibers.SIMPLE_FIBER):
+                       gain: float = 0.0, gvd_units: str = "ps^n/km", label: Fibers = Fibers.SIMPLE_FIBER):
         self.length = length
         self._fiber_specs = {"dispersion_format": "GVD", "is_gain": bool(gain),
                              "gain_x_data": None}

@@ -20,3 +20,6 @@ def checker(func: Any) -> Any:
 
 def to_tensor(arr: Any) -> Tensor:
     return tensor(arr)
+
+def dB(val: float) -> float:
+    return 10 * np.log10(np.abs(val)**2)
