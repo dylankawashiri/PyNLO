@@ -6,7 +6,6 @@ try:
 except ModuleNotFoundError:
     import numpy as np
     try:
-        import pizza
         from torch.fft import ifftshift, ifft, fftshift, fft
     except ModuleNotFoundError:
         from scipy.fft import ifftshift, ifft, fftshift, fft
