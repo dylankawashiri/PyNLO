@@ -3,6 +3,8 @@ from __future__ import annotations
 from CuPyNLO.interactions.FourWaveMixing import global_variables as gv
 from CuPyNLO.light.PulseBase_v2 import Pulse, Noise
 from CuPyNLO.media.fibers.fiber_v2 import FiberInstance
+from CuPyNLO.util.checker import checker
+from CuPyNLO.util.fft import fftshift, ifftshift, ifft, fft
 
 from enum import IntEnum
 import logging
@@ -11,11 +13,6 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-from CuPyNLO.util.fft import fftshift, ifftshift, ifft, fft
-
-from CuPyNLO.util.checker import checker
-
-# NOTE: Using scipy.fft for CPU, but can be replaced with CuPy for GPU acceleration if needed
 
 class Methods(IntEnum):
     SSFM = 1

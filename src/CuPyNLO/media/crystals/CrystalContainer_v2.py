@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from CuPyNLO.light.PulseBase_v2 import Pulse
 
-from typing import Any, Callable
+from typing import Callable
 import numpy as np
-from scipy import misc, optimize, constants
+from scipy import constants
 
 
 class Crystal:
@@ -27,6 +27,6 @@ class Crystal:
         self._pp = fn
 
     def pulse_k(self, Pulse: Pulse, axis: float | None = None) -> np.ndarray:
-        if axis is None:
-            return 2.0 * np.pi * 
-    
+        # if axis is None:
+        #     return 2.0 * np.pi * 
+        raise NotImplementedError()

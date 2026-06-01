@@ -113,7 +113,7 @@ class Server:
 
                         out1 = {
                             "step": step_info[step_idx],
-                            "message": f"Propagating... Step {i+1}/{settings["steps"]}",
+                            "message": f"Propagating... Step {i+1}/{settings['steps']}",
                             "time_taken": float(time_taken),
                             "average_time": float(np.mean(deque_time)),
                             "estimated_time_remaining": float(np.mean(deque_time) * (settings["steps"] - i - 1))
