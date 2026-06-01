@@ -2,16 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
-from scipy import interpolate, constants # type: ignore
-from scipy.special import factorial # type: ignore
-from scipy.optimize import minimize, OptimizeResult # type: ignore
-from typing import Any, Callable, cast
+from scipy import constants # type: ignore
+from typing import Any
 
-from CuPyNLO.light.PulseBase_v2 import Pulse
-from CuPyNLO.media.fibers.calculators_v2 import DTabulationToBetas
-from CuPyNLO.util.pynlo_ffts_cupy import IFFT_t
 from CuPyNLO.media.fibers.fiber_loader import Collection, Fibers, FiberLoader
-from CuPyNLO.util.util import to_numpy
 
 class Fiber:
     def __init__(self,

@@ -4,6 +4,10 @@ import numpy as np
 from torch import tensor, Tensor
 
 def to_numpy(arr: Any) -> np.ndarray:
+    if isinstance(arr, Tensor):
+        # Torch FFT outputs can carry conjugate/negative view flags.
+        return arr.resolve_conj().resolve_neg().detach().cpu().numpy()
+
     getter = getattr(arr, "get", None)
     host_arr = getter() if callable(getter) else arr
     return np.asarray(host_arr)

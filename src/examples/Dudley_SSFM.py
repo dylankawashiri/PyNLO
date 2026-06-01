@@ -1,6 +1,14 @@
 # type: ignore
 from __future__ import annotations
 
+
+import time
+start = time.time()
+
+from CuPyNLO.util.fft import make_scipy_default, make_torch_default, make_cupy_default
+
+make_torch_default()
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -9,7 +17,7 @@ from CuPyNLO.media.fibers import fiber_v2 as fiber
 from CuPyNLO.light.DerivedPulses_v2 import SechPulse
 
 dz = 1e-3
-steps = 100
+steps = 1000
 range1 = np.arange(steps)
 
 centerwl = 835.0
@@ -18,7 +26,7 @@ fiber_length = 0.15
 pump_power = 1.0e4 # Peak power
 pump_pulse_length = 28.4e-3
 
-npoints = 2**13
+npoints = 2**15
 
 init = SechPulse(power                  =   pump_power, 
                  t0_ps                  =   pump_pulse_length, 
@@ -64,9 +72,6 @@ mlIT = np.max(zT)
 D = fiber1.beta2_to_d(init)
 beta = fiber1.beta2(init)
 
-
-print(beta, D)
-
 plt.figure()
 plt.subplot(121)
 plt.plot(wl,D,'x')
@@ -94,5 +99,7 @@ plt.pcolormesh(xT, y, zT, shading='nearest', vmin = mlIT - 40.0, vmax = mlIT)
 plt.autoscale(tight=True)
 plt.xlabel('Delay (ps)')
 plt.ylabel('Distance (m)')
+
+print(time.time() - start)
 
 plt.show() # type: ignore

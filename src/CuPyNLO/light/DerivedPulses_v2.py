@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from CuPyNLO.light.PulseBase_v2 import Pulse
 
-try:
-    import cupy as np
-except ModuleNotFoundError:
-    import numpy as np
+import numpy as np
 
 
 class SechPulse(Pulse):

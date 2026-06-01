@@ -1,10 +1,29 @@
-from __future__ import annotations
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jun 03 15:11:20 2015
+This file is part of pyNLO.
 
-from CuPyNLO.light.PulseBase import Pulse
+    pyNLO is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    pyNLO is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
+@author: ycasg
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import numpy as np
-from scipy import misc, optimize # type: ignore
-from scipy.constants import speed_of_light # type: ignore
+from scipy import misc, optimize
+from scipy.constants import speed_of_light
 
 class Crystal:
     """ Container for chi-2 nonlinear crystals. Actual crystal refractive index,
@@ -15,10 +34,10 @@ class Crystal:
     _wavelength_axes    = {}
     _enable_caching     = False
     _cached_ns          = {}
-    _crystal_properties  = {'damage_threshold_GW_per_sqcm': 1.0, # type: ignore
+    _crystal_properties  = {'damage_threshold_GW_per_sqcm': 1.0,
                             'damage_threshold_info' : ''}
     
-    def __init__(self, params: dict[str, float | bool]):                
+    def __init__(self, params):                
         if 'length' in params.keys():
             self._length = params['length']
         else:
@@ -28,19 +47,17 @@ class Crystal:
         else:
             self._enable_caching = False
             
-    def set_pp_chirp(self, start: float, stop: float):
-        self.pp   = lambda x: start + (stop-start) * x /self.length_mks
-
-    def get_pulse_k(self, pulse_instance: Pulse, axis: str | None = None):
+    def set_pp_chirp(self, start, stop):
+        self.pp   = lambda x: start + (stop-start) * x /self.length        
+    def get_pulse_k(self, pulse_instance, axis = None):
         """ Return vector of angular wavenumbers (m^-1) for the pulse_instance's 
             frequency grid inside the crystal """
         if axis is None:
             ks = 2.0 * np.pi * self.n(pulse_instance.wl_nm) / pulse_instance.wl_mks
         else:
             ks = 2.0 * np.pi * self.n(pulse_instance.wl_nm, axis) / pulse_instance.wl_mks
-        return ks
-
-    def get_pulse_n(self, pulse_instance: Pulse, axis: str | None = None) -> float:
+        return ks            
+    def get_pulse_n(self, pulse_instance, axis = None):
         """ Return vector of indices of refraction for the pulse_instance's 
             frequency grid inside the crystal """
         if self._enable_caching:
@@ -58,18 +75,14 @@ class Crystal:
             else:
                 ns = self.n(pulse_instance.wl_nm, axis)
         return ns
-
-    def calculate_group_velocity_nm_ps(self, wavelengths_nm: list[float] | np.ndarray, axis: str | None = None):
+    def calculate_group_velocity_nm_ps(self, wavelengths_nm, axis = None):
         """ Calculate group velocity vg at 'wavelengths_nm' [nm] along 'axis'
             in units of nm/ps """
         # Equation 4.7.7b in Verdeyen
-        def fn(x):
-            return self.n(x, axis)
-
+        fn = lambda x: self.n(x, axis)
         dn_dl = misc.derivative(fn, wavelengths_nm, dx = 0.1, n = 1, order = 11)
         vg_inverse = (1.0 / self._c_nm_ps) * (fn(wavelengths_nm) - wavelengths_nm * dn_dl)
         return 1.0 / vg_inverse
-    
     def calculate_pulse_delay_ps(self, wl1_nm, wl2_nm, crystal_length_mks = None, axis = None):
         """ Calculate the pulse delay between pulses at wl1 and wl2 after
             crystal. Be default, crystal instance's length is used. """
@@ -84,10 +97,8 @@ class Crystal:
         
     def calculate_D_ps_nm_km(self, wavelengths_nm, axis = None):
         """ Calculate crystal dispersion at 'wavelengths_nm' [nm] along 'axis' in
-            standard photonic engineering units ps/nm/km"""
-        def fn(x):
-            return self.n(x, axis)
-
+            standard photonic engineering units ps/nm/km"""        
+        fn = lambda x: self.n(x, axis)
         d2n_dl2 = misc.derivative(fn, wavelengths_nm, dx = 0.1, n = 2, order = 11)
         D1      = (wavelengths_nm / self._c_nm_ps) * d2n_dl2 # units are ps/nm/nm
         D       = D1 * 1.0e12
@@ -170,7 +181,7 @@ class Crystal:
         ----------
         cache_enable : bool
         """
-        assert(cache_enable is True or cache_enable is False)
+        assert(cache_enable == True or cache_enable == False)
         self._enable_caching = cache_enable
     def _get_length_mks(self):
         return self._length

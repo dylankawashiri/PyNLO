@@ -1,14 +1,12 @@
 import base64
 from collections import deque
 import io
-from multiprocessing import Pool
-from pathlib import Path
 import time
 from typing import Any
 
 import flask
 from flask import Flask, request
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO
 from flask_cors import CORS
 import matplotlib
 matplotlib.use("Agg")

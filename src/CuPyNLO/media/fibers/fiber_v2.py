@@ -9,16 +9,9 @@ from typing import Any, Callable, cast
 
 from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.fibers.calculators_v2 import DTabulationToBetas
-from CuPyNLO.util.pynlo_ffts_cupy import IFFT_t
-# from CuPyNLO.media.fibers.JSONFiberLoader import Collection, Fibers, JSONFiberLoader # type: ignore
+from CuPyNLO.util.fft import IFFT_t
+from CuPyNLO.util.util import to_numpy
 from CuPyNLO.media.fibers.fiber_loader import Collection, Fibers, FiberLoader
-
-def _to_numpy(arr: Any) -> npt.NDArray[np.float64]:
-    """Convert either NumPy or CuPy-like arrays to a NumPy array."""
-    if hasattr(arr, "get"):
-        return np.asarray(arr.get(), dtype=float)
-    return np.asarray(arr, dtype=float)
-
 
 class FiberInstance:
     def __init__(self, *,
@@ -124,8 +117,8 @@ class FiberInstance:
 
     def get_betas(self, pulse: Pulse, z: float = 0.0) -> np.ndarray:
         b: npt.NDArray[np.float64] = np.zeros((pulse.n, ), dtype=float)
-        pulse_w = _to_numpy(pulse.W_THz)
-        pulse_v = _to_numpy(pulse.V_THz)
+        pulse_w = pulse.W_THz
+        pulse_v = pulse.V_THz
         if self.dispersion_changes_with_z:
             if self.dispersion_function is None:
                 raise ValueError("Dispersion function not set.")
@@ -195,7 +188,7 @@ class FiberInstance:
                     )
 
                     gain_spec: npt.NDArray[np.float64] = np.asarray(
-                        f(_to_numpy(pulse.W_Hz) / (2.0 * np.pi)),
+                        f((pulse.W_Hz) / (2.0 * np.pi)),
                         dtype=float,
                     )
 
@@ -232,11 +225,11 @@ class FiberInstance:
         return np.zeros((pulse.n, )) * self._gain
 
     def beta2_to_d(self, pulse: Pulse):
-        wavelength_nm = _to_numpy(pulse.wavelength_nm)
+        wavelength_nm = pulse.wavelength_nm
         return -2.0 * np.pi * self._c / wavelength_nm**2 * self.beta2(pulse) * 1000
     
     def beta2(self, pulse: Pulse):
-        V_THz = _to_numpy(pulse.V_THz)
+        V_THz = pulse.V_THz
         dw = V_THz[1] - V_THz[0]
         out = np.diff(self.get_betas(pulse, 2), 2) / dw**2
         out = np.append(out[0], out)

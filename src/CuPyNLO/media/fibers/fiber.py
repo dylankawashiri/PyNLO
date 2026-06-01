@@ -1,14 +1,32 @@
-from __future__ import annotations
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jun 04 13:44:06 2015
+This file is part of pyNLO.
+
+    pyNLO is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    pyNLO is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
+@author: ycasg
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 import scipy.interpolate
+from CuPyNLO.media.fibers.calculators import DTabulationToBetas
 from scipy.special import factorial
 from scipy import constants
 from scipy.optimize import minimize
-import typing as typ
-
-from CuPyNLO.light.PulseBase import Pulse
-from CuPyNLO.media.fibers.calculators import DTabulationToBetas
 from CuPyNLO.util.pynlo_ffts import IFFT_t
 from CuPyNLO.media.fibers import JSONFiberLoader
 
@@ -38,9 +56,8 @@ class FiberInstance:
     fiberspecs  = {}
     poly_order  = None
     gamma       = None
-
-    def __init__(self, fiber_db: str = 'general_fibers',
-                       fiber_db_dir: str | None = None):
+    def __init__(self, fiber_db = 'general_fibers',
+                       fiber_db_dir = None):
         self.c_mks = constants.speed_of_light
         self.c = constants.speed_of_light * 1e9/1e12 # c in nm/ps
         self.is_simple_fiber = False
@@ -50,7 +67,7 @@ class FiberInstance:
         self.gamma_changes_with_z = False
         
         
-    def load_from_db(self, length: float, fibertype: str, poly_order: int = 2):
+    def load_from_db(self, length, fibertype, poly_order = 2):
         """This loads a fiber from the database. """
         self.fibertype = fibertype
         self.fiberspecs = self.fiberloader.get_fiber(fibertype)
@@ -60,8 +77,8 @@ class FiberInstance:
         self.poly_order = poly_order
         self.load_dispersion()
     
-    def load_from_file(self, filename: str, length: float = 0.1, fiberName: str | None = None, gamma_W_m: float = 0,
-                       gain: int = 0, delimiter: str =',', skiprows: int = 0, poly_order: int = 3):
+    def load_from_file(self, filename, length=0.1, fiberName=None, gamma_W_m=0, gain=0,
+                       alpha=0, delimiter=',', skiprows=0, poly_order=3):
         """
         This loads dispersion give the path of a file. 
         The file is expected to be in the format
@@ -69,7 +86,7 @@ class FiberInstance:
         """
         import os
         
-        if fiberName is None:
+        if fiberName == None:
             self.fibertype = os.path.basename(filename)
         else:
             self.fibertype = fiberName
@@ -111,7 +128,7 @@ class FiberInstance:
             print( "Error: no dispersion found.")
             return None
     
-    def set_dispersion_function(self, dispersion_function: typ.Callable[[float], float], dispersion_format: str = 'GVD'):
+    def set_dispersion_function(self, dispersion_function, dispersion_format='GVD'):
         """
         This allows the user to provide a function for the fiber dispersion that can vary as a function
         of `z`, the length along the fiber. The function can either provide beta2, beta3, beta4, etc. 
@@ -156,7 +173,7 @@ class FiberInstance:
         self.fiberspecs["dispersion_format"] = dispersion_format
         self.dispersion_function = dispersion_function
     
-    def set_gamma_function(self, gamma_function: typ.Callable[[float], float]) -> None:
+    def set_gamma_function(self, gamma_function):
         """
         This allows the user to provide a function for gamma (the effective nonlinearity, in units
         of 1/(Watts * meters)) that 
@@ -171,7 +188,7 @@ class FiberInstance:
         self.gamma_function = gamma_function
         self.gamma_changes_with_z = True
     
-    def get_gamma(self, z: float = 0.0) -> float:
+    def get_gamma(self, z=0):
         """
         Allows the gamma (effective nonlinearity) to be queried at a specific z-position
         
@@ -194,7 +211,7 @@ class FiberInstance:
         
         
         
-    def get_betas(self, pulse: Pulse, z: float = 0.0) -> np.ndarray:
+    def get_betas(self, pulse, z=0):
         """This provides the propagation constant (beta) at the frequencies of the supplied pulse grid.
         The units are 1/meters. 
         
@@ -286,7 +303,7 @@ class FiberInstance:
             return -1
             
             
-    def get_gain(self, pulse: Pulse, output_power: float = 1.0):
+    def get_gain(self,pulse,output_power = 1):
         """ Retrieve gain spectrum for fiber. If fiber has 'simple gain', this
         is a scalar. If the fiber has a gain spectrum (eg EDF or YDF), this will
         return this spectrum as a vector corresponding to the Pulse class
@@ -307,13 +324,12 @@ class FiberInstance:
                                  bounds_error=False,fill_value=0)
                     gain_spec = f(pulse.W_mks/ (2*np.pi))
 
-                    def g(k):
-                        return np.abs(output_power - pulse.frep_Hz * pulse.dT_mks*
-                                            np.trapz(np.abs(
-                                                IFFT_t( pulse.AW *
-                                                    np.exp(k*gain_spec*self.length/2.0)
-                                                    )
-                                                    )**2))
+                    g = lambda k: np.abs(output_power - pulse.frep_Hz * pulse.dT_mks*
+                                        np.trapz(np.abs(
+                                            IFFT_t( pulse.AW *
+                                                np.exp(k*gain_spec*self.length/2.0)
+                                                )
+                                                )**2))
 
                     scale_factor = minimize(g, 1, method='Powell')
 #                    print 'Power:',pulse.frep * pulse.dt_seconds*\
@@ -328,11 +344,11 @@ class FiberInstance:
         else:
             return np.zeros((pulse.NPTS,))
 
-    def Beta2_to_D(self, pulse: Pulse): # in ps / nm / km
+    def Beta2_to_D(self, pulse): # in ps / nm / km
         """ This provides the dispersion parameter D (in ps / nm / km) at each frequency of the supplied pulse"""
         return -2 * np.pi * self.c / pulse.wl_nm**2 * self.Beta2(pulse) * 1000
         
-    def Beta2(self, pulse: Pulse):
+    def Beta2(self, pulse):
         """ This provides the beta_2 (in ps^2 / meter)."""
         dw = pulse.V_THz[1] - pulse.V_THz[0]
         out = np.diff(self.get_betas(pulse), 2) / dw**2
@@ -342,8 +358,8 @@ class FiberInstance:
     
     
 
-    def generate_fiber(self, length: float, center_wl_nm: float, betas: np.ndarray, gamma_W_m: float, gain: int = 0,
-                       gvd_units: str = 'ps^n/m', label: str = 'Simple Fiber'):
+    def generate_fiber(self, length, center_wl_nm, betas, gamma_W_m, gain = 0,
+                       gvd_units = 'ps^n/m', label = 'Simple Fiber'):
         """ This generates a fiber instance using the beta-coefficients."""
         
         self.length = length

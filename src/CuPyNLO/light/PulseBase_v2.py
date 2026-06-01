@@ -3,26 +3,11 @@ from __future__ import annotations
 from enum import Enum
 import logging
 
-# import numpy as np
+import numpy as np
 import numpy.typing as npt
 from scipy import constants # type: ignore
-# from scipy.interpolate import interp1d
-# from scipy.fft import fft, fftfreq
 
-# from CuPyNLO.util.pynlo_ffts import IFFT_t, FFT_t
-try:
-    import cupy as np
-    from cupyx.scipy.interpolate import interp1d
-    from cupyx.scipy.fft import fft, fftfreq
-except ModuleNotFoundError:
-    import numpy as np
-    from scipy.interpolate import interp1d
-    try:
-        from torch.fft import fft, fftfreq
-    except ModuleNotFoundError:
-        from scipy.fft import fft, fftfreq
-
-from CuPyNLO.util.pynlo_ffts_cupy import IFFT_t, FFT_t
+from CuPyNLO.util.fft import FFT_t, IFFT_t, fft, fftfreq, interp1d
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +156,7 @@ class Pulse:
 
     @at.setter
     def at(self, arr: np.ndarray | list[float]):
-        self.aw = FFT_t(np.array(arr))
+        self.aw = FFT_t(arr)
 
     @property
     def w0(self) -> float:

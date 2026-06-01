@@ -1,21 +1,38 @@
-from __future__ import annotations
-
-from typing import Any
-import warnings
+# -*- coding: utf-8 -*-
+#Created on Thu Jun 04 13:48:11 2015
+#This file is part of pyNLO.
+#
+#    pyNLO is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    pyNLO is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with pyNLO.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy import constants 
+from scipy import constants, signal 
+from CuPyNLO.util import FFT_t, IFFT_t
+import warnings
 import scipy.ndimage.interpolation
 
-from CuPyNLO.util import FFT_t, IFFT_t
+import matplotlib.pyplot as plt # for testing. remove!
 
 class Pulse:
     """Class which carried all information about the light field. This class 
        is a base upon which various cases are built (eg analytic pulses,
        CW fields, or pulses generated from experimental data.) """
 
-    def __init__(self, frep_MHz: float | None = None, n: int | None = None):
+    def __init__(self, frep_MHz = None, n = None):
         if frep_MHz is not None:
             self._frep_MHz = frep_MHz
             if frep_MHz > 1.0e6:
@@ -26,8 +43,6 @@ class Pulse:
         # scipy is Mocked out.
         self._c_nmps = constants.value('speed of light in vacuum')*1e9/1e12 # c in nm/ps
         self._c_mks  = constants.value('speed of light in vacuum') # m/s        
-        self._frep_MHz = 100.0
-
     # Private variables:
     # This set is the minimum number required to completely specify the light
     # field. All other representations are derived from them.
@@ -36,6 +51,7 @@ class Pulse:
     _time_window        = 1.0     # Time window (ps)
     _V                  = None    # Relative angular frequency grid (2 pi THz)
     _AW                 = None    # Frequency-domain pulse amplitude
+    _frep_MHz           = 100.0   # Pulse frequency (MHz); used for converting
                                   # pulse energy < - > average power
     _ready              = False   # All fields are initialized (this allows for
                                   # incomplete Pulse objects to be created and
@@ -53,28 +69,23 @@ class Pulse:
     _cache_W_Hz_hash                = None
     _cache_W_Hz                     = None
     
-    _not_ready_msg = 'Pulse class is not yet ready -- set center wavelength, time window, and npts.'
-
-    _frep_MHz: float
-
+    _not_ready_msg = 'Pulse class is not yet ready -- set center wavelength, time window, and npts.'    
     def load_consts(self):
         r""" Load constants, needed after unpickling in some cases """
         self._c_nmps = constants.value('speed of light in vacuum')*1e9/1e12 # c in nm/ps
         self._c_mks  = constants.value('speed of light in vacuum') # m/s                
     ####### Private properties    #############################################
-    def __get_w0(self) -> float:
+    def __get_w0(self):
         r""" Return center angular frequency (THz) """
         if self._centerfrequency is None:
             raise ValueError('Center frequency is not set.')
-        return 2.0 * np.pi * self._centerfrequency
-
+        return 2.0 * np.pi * self._centerfrequency    
     def __get_W(self):
         r""" Return angular frequency grid (THz) """
         if not self._ready:
             raise RuntimeError(self._not_ready_msg)
         else:
             return self._V + self._w0
-
     def __get_T(self):
         r""" Return temporal grid (ps) """
         if not self._ready:
@@ -84,7 +95,6 @@ class Pulse:
                                   self._time_window / 2.0,
                                   self._n, endpoint = False) # time grid
             return TGRID
-
     def __get_dT(self):
         r""" Return time grid spacing (ps) """
         if not self._ready:
@@ -173,13 +183,13 @@ class Pulse:
         return abs(self.W_THz[1]-self.W_THz[0])/(2.0*np.pi)
     def _get_dF_Hz(self):
         return abs(self.W_mks[1]-self.W_mks[0])/(2.0*np.pi)
-
-    def _get_frep_MHz(self) -> float:
+    def _get_frep_MHz(self):
         return self._frep_MHz
-
-    def _get_frep_Hz(self) -> float:
-        return self._frep_MHz * 1.0e6
-
+    def _get_frep_Hz(self):
+        if self._frep_MHz is None:
+            return None
+        else:
+            return self._frep_MHz * 1.0e6
     def _get_AW(self):
         if self._AW is not None:
             return self._AW.copy()
@@ -189,9 +199,8 @@ class Pulse:
         if self._AW is not None:
             return IFFT_t( self._AW.copy() )
         else:
-            raise RuntimeError('Grids not yet set up.')
-
-    def set_AW(self, AW_new: np.ndarray):
+            raise RuntimeError('Grids not yet set up.')    
+    def set_AW(self, AW_new):
         r""" Set the value of the frequency-domain electric field.
         
         Parameters
@@ -206,7 +215,7 @@ class Pulse:
             self._AW = np.zeros((self._n,), dtype = np.complex128)
         self._AW[:] = AW_new
         
-    def set_AT(self, AT_new: np.ndarray):
+    def set_AT(self, AT_new):
         r""" Set the value of the time-domain electric field.
         
         Parameters
@@ -450,11 +459,10 @@ class Pulse:
     """                
     cache_hash      = property(_get_hash)
     
-    def _set_centerfrequency(self, f_THz: float):
+    def _set_centerfrequency(self, f_THz):
         self._centerfrequency = f_THz
         self._check_ready()
-
-    def _set_time_window(self, T_ps: float):
+    def _set_time_window(self, T_ps):
         self._time_window = T_ps
         self._check_ready()
 
@@ -462,19 +470,19 @@ class Pulse:
         self._ready =  (self._centerfrequency is not None) and\
                        (self._n is not None) and\
                        (self._time_window is not None)
+               
 
     def _ext_units_nmps(self):
         if self._external_units is None:
             RuntimeError('Unit type has not been set.')
         return self._external_units == 'nmps'
-
     def _ext_units_mks(self):
         if self._external_units is None:
             RuntimeError('Unit type has not been set.')
         return self._external_units == 'mks'
 
     ####### Core public  functions     ########################################        
-    def set_center_wavelength_nm(self, wl: float):
+    def set_center_wavelength_nm(self, wl):
         r""" Set the center wavelength of the grid in units of nanometers.
         
         Parameters
@@ -484,8 +492,7 @@ class Pulse:
         
         """
         self._set_centerfrequency(self._c_nmps / wl)
-
-    def set_center_wavelength_m(self, wl: float):
+    def set_center_wavelength_m(self, wl):
         r""" Set the center wavelength of the grid in units of meters.
         
         Parameters
@@ -496,7 +503,7 @@ class Pulse:
         """
         self._set_centerfrequency(self._c_nmps /  (wl * 1.0e9) )
         
-    def set_NPTS(self, NPTS: int):
+    def set_NPTS(self, NPTS):
         r""" Set the grid size. 
         
         The actual grid arrays are *not* altered
@@ -510,7 +517,7 @@ class Pulse:
         """        
         self._n = int(NPTS)
         self._check_ready() 
-    def set_frep_MHz(self, fr_MHz: float):
+    def set_frep_MHz(self, fr_MHz):
         r""" Set the pulse repetition frequency. 
         
         This parameter used internally to convert between pulse energy and 
@@ -523,7 +530,7 @@ class Pulse:
         
         """        
         self._frep_MHz = fr_MHz
-    def set_time_window_ps(self, T: float):
+    def set_time_window_ps(self, T):
         r""" Set the total time window of the grid. 
         
         This sets the grid dT, and
@@ -540,8 +547,7 @@ class Pulse:
         # frequency grid is 2 pi/ dT * [-1/2, 1/2]
         # dT is simply time_window / NPTS
         self._set_time_window(T)
-
-    def set_time_window_s(self, T: float):
+    def set_time_window_s(self, T):
         r""" Set the total time window of the grid. 
         
         This sets the grid dT, and
@@ -555,7 +561,7 @@ class Pulse:
         if self._n is None:
             raise RuntimeError('Set number of points before setting time window.')        
         self._set_time_window(T * 1e12)
-
+        
     def set_frequency_window_THz(self, DF):
         r""" Set the total frequency window of the grid. 
         
@@ -594,7 +600,7 @@ class Pulse:
         self._set_time_window(T * 1e12)                            
 
     ####### Auxiliary public  functions     ###################################
-    def calc_epp(self) -> np.ndarray[Any, np.dtype[np.float64]]:
+    def calc_epp(self):
         r""" Calculate and return energy per pulse via numerical integration
             of :math:`A^2 dt`
             
@@ -604,8 +610,8 @@ class Pulse:
                 Pulse energy [J]
             """
         return self.dT_mks * np.trapezoid(abs(self.AT)**2)
-
-    def set_epp(self, desired_epp_J: float):
+    
+    def set_epp(self, desired_epp_J):
         r""" Set the energy per pulse (in Joules)
             
             Parameters
@@ -670,7 +676,7 @@ class Pulse:
         
         
         
-    def chirp_pulse_W(self, GDD: float, TOD: float = 0, FOD: float = 0.0, w0_THz: bool = None):
+    def chirp_pulse_W(self, GDD, TOD=0, FOD = 0.0, w0_THz = None):
         r""" Alter the phase of the pulse 
         
         Apply the dispersion coefficients :math:`\beta_2, \beta_3, \beta_4`
@@ -708,7 +714,7 @@ class Pulse:
             self.set_AW( np.exp(1j * (GDD / 2.0) * V**2 + 
                                    1j * (TOD / 6.0) * V**3+ 
                                    1j * (FOD / 24.0) * V**4) * self.AW )
-    def apply_phase_W(self, phase: float) -> None:
+    def apply_phase_W(self, phase):
         self.set_AW(self.AW * np.exp(1j*phase))
     def chirp_pulse_T(self, chirp2, chirp3, T0):
         self.set_AT( self.AT * np.exp(-1j * (chirp2 / 2.0) * (self.T_ps/T0)**2 + 
@@ -797,9 +803,8 @@ class Pulse:
         AW_new = self.AW
         AW_new[self.wl_nm < lower_wl_nm] = 0.0
         AW_new[self.wl_nm > upper_wl_nm] = 0.0
-        self.set_AW(AW_new)
-
-    def clone_pulse(self, p: Pulse):
+        self.set_AW(AW_new)        
+    def clone_pulse(self, p):
         '''Copy all parameters of pulse_instance into this one'''
         self.set_NPTS(p.NPTS)
         self.set_time_window_ps(p.time_window_ps)
@@ -972,6 +977,7 @@ class Pulse:
         if gate_type == 'xfrog':
             gate_function = gauss(T, mu=D, sigma=gate_function_width_ps)
         elif gate_type=='frog':
+            dstep = float(delay[1]-delay[0])
             tstep = float(    t[1]-    t[0])
             # calculate the coordinates of the new array
             dcoord = D*0

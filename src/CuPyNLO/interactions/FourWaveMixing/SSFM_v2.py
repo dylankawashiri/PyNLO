@@ -6,30 +6,13 @@ from CuPyNLO.media.fibers.fiber_v2 import FiberInstance
 
 from enum import IntEnum
 import logging
+import numpy as np
 from tqdm import tqdm
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-pytorch = False
-cupy = False
-# import numpy as np
-# from scipy.fft import fftshift, ifftshift, ifft, fft
-try:
-    import cupy as np
-    from cupyx.scipy.fft import fftshift, ifftshift, ifft, fft
-    cupy = True
-except ModuleNotFoundError:
-    logger.warning("CuPy not available, checking PyTorch.")
-    import numpy as np
-    try:
-        # import pizza
-        from torch import tensor, from_numpy
-        from torch.fft import fftshift, ifftshift, ifft, fft
-        pytorch = True
-    except ModuleNotFoundError:
-        logger.warning("PyTorch not available, using Scipy.")
-        # from scipy.fft import fftshift, ifftshift, ifft, fft
+from CuPyNLO.util.fft import fftshift, ifftshift, ifft, fft
 
 from CuPyNLO.util.checker import checker
 
@@ -38,11 +21,6 @@ from CuPyNLO.util.checker import checker
 class Methods(IntEnum):
     SSFM = 1
     RK4IP = 2
-
-def to_numpy(arr: Any) -> np.ndarray:
-    getter = getattr(arr, "get", None)
-    host_arr = getter() if callable(getter) else arr
-    return np.asarray(host_arr)
 
 class SSFM:
     def __init__(self, *, local_error: float = 0.001, dz: float = 1e-5,
@@ -132,18 +110,11 @@ class SSFM:
         self._w0 = pulse.center_frequency_THz * 2.0 * np.pi
 
         self.CalculateRamanResponseFT(pulse)
-        if pytorch:
-            self.a[:] = fftshift(from_numpy(pulse.at))
-            self.omegas[:] = fftshift(from_numpy(self.omegas))
-            self.alpha[:] = fftshift(from_numpy(self.alpha))
-            self.r[:] = fftshift(from_numpy(self.r))
-            self.r0[:] = fftshift(from_numpy(self.r0))
-        else:
-            self.a[:] = fftshift(pulse.at)
-            self.omegas[:] = fftshift(self.omegas)
-            self.alpha[:] = fftshift(self.alpha)
-            self.r[:] = fftshift(self.r)
-            self.r0[:] = fftshift(self.r0)
+        self.a[:] = fftshift(pulse.at)
+        self.omegas[:] = fftshift(self.omegas)
+        self.alpha[:] = fftshift(self.alpha)
+        self.r[:] = fftshift(self.r)
+        self.r0[:] = fftshift(self.r0)
         
 
     def CalculateRamanResponseFT(self, pulse: Pulse):
@@ -303,10 +274,7 @@ class SSFM:
     def load_fiber_parameters(self, pulse: Pulse, fiber: FiberInstance, z: float = 0.0):
         self.betas[:] = np.asarray(fiber.get_betas(pulse, z))
         self._gamma = fiber.gamma(z)
-        if pytorch:
-            self.betas[:] = fftshift(from_numpy(self.betas))
-        else:
-            self.betas[:] = fftshift(self.betas)
+        self.betas[:] = fftshift(self.betas)
 
     def propagate_step(self, step: int, pulse: Pulse, fiber: FiberInstance, dz: float, direction: int = 1):
         """
@@ -317,14 +285,9 @@ class SSFM:
         """
         self.load_fiber_parameters(pulse, fiber)
         self.integrate_over_dz(dz, direction)
-        if pytorch:
-            aw = ifftshift(from_numpy(self.FFT_t(self.a)))
-            at = ifftshift(from_numpy(self.a))
-            pulse.at = to_numpy(ifftshift(from_numpy(self.a)))
-        else:
-            aw = ifftshift(self.FFT_t(self.a))
-            at = ifftshift(self.a)
-            pulse.at = to_numpy(ifftshift(self.a))
+        aw = ifftshift(self.FFT_t(self.a))
+        at = ifftshift(self.a)
+        pulse.at = ifftshift(self.a)
         return aw, at, pulse
 
     def propagate(self, pulse: Pulse, fiber: FiberInstance, n_steps: int, *, output_power: float = 1.0, reload: bool = False, thread: bool = False):
@@ -353,10 +316,7 @@ class SSFM:
 
         #     # print ("Pulse energy after:", \
         #     #   1e9 * pulse_out.calc_epp(), 'nJ' )
-        if pytorch:
-            pulse_out.at = to_numpy(ifftshift(from_numpy(self.a)))
-        else:
-            pulse_out.at = to_numpy(ifftshift(self.a))
+        pulse_out.at = ifftshift(self.a)
 
         # print ( "Pulse energy after", fiber._fiber_type,":", \
         #       1e9 * pulse_out.calc_epp(), 'nJ' )
@@ -387,31 +347,18 @@ class SSFM:
                     g12_stack = np.dstack((g12, g12_stack))
 
     def FFT_t(self, A: np.ndarray) -> np.ndarray:
-        if pytorch:
-            if type(A) is np.ndarray:
-                A = from_numpy(A)
         if gv.PRE_FFTSHIFT:
             return np.asarray(ifft(A))
         else:
             return np.asarray(ifftshift(ifft(fftshift(A))))
     
     def FFT_t_shift(self, A: np.ndarray) -> np.ndarray:
-        if pytorch:
-            if type(A) is np.ndarray:
-                A = from_numpy(A)
         return np.asarray(ifftshift(ifft(fftshift(A))))
     
     def IFFT_t(self, A: np.ndarray) -> np.ndarray:
-        if pytorch:
-            if type(A) is np.ndarray:
-                A = from_numpy(A)
         if gv.PRE_FFTSHIFT:
             return np.asarray(fft(A))
         return np.asarray(ifftshift(fft(fftshift(A))))
     
     def IFFT_t_shift(self, A: np.ndarray) -> np.ndarray:
-        if pytorch:
-            if type(A) is np.ndarray:
-                A = from_numpy(A)
         return np.asarray(ifftshift(fft(fftshift(A))))
-
