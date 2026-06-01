@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# ruff: noqa
 """
 Created on Mon Jun 08 14:08:12 2015
 This file is part of pyNLO.

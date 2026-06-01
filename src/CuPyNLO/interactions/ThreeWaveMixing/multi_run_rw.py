@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# ruff: noqa
 """
 DFG integation results writer. Saves numerically integrated
 "DFGintegrand" using pyTables / HDF5.

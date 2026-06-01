@@ -10,7 +10,6 @@ from typing import Any, Callable, cast
 from CuPyNLO.light.PulseBase_v2 import Pulse
 from CuPyNLO.media.fibers.calculators_v2 import DTabulationToBetas
 from CuPyNLO.util.fft import IFFT_t
-from CuPyNLO.util.util import to_numpy
 from CuPyNLO.media.fibers.fiber_loader import Collection, Fibers, FiberLoader
 
 class FiberInstance:

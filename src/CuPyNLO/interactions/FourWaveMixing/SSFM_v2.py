@@ -8,7 +8,6 @@ from enum import IntEnum
 import logging
 import numpy as np
 from tqdm import tqdm
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
