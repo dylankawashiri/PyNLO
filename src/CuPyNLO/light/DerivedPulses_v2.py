@@ -25,3 +25,4 @@ class SechPulse(Pulse):
 
         self.chirp_pulse_W(gdd, tod=tod)
         self.chirp_pulse_T(chirp2, chirp3, t0_ps)
+

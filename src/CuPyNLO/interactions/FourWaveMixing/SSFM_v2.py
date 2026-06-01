@@ -56,8 +56,6 @@ class SSFM:
 
         self.iter = 0
 
-
-
     def setup_fftw(self, pulse: Pulse, fiber: FiberInstance, output_power: float, *, raman_plots: bool = False):
         self._n = pulse.n
 
@@ -145,11 +143,12 @@ class SSFM:
         if gv.USE_FREQUENCY_DOMAIN_RAMAN:
             self.r[:] = self.r0
 
+
     def integrate_over_dz(self, delta_z: float, direction: int = 1):
         dz = self.dz
         factor = 2**(1.0 / self.eta)
         # Keep dist as a Python float to avoid mutating caller-provided 0-D arrays.
-        dist = float(delta_z)
+        dist = delta_z
 
         return_dz = None
         force = False
@@ -268,22 +267,23 @@ class SSFM:
             return np.linalg.norm(self.af - self.ac)
         
     def load_fiber_parameters(self, pulse: Pulse, fiber: FiberInstance, z: float = 0.0):
-        self.betas[:] = np.asarray(fiber.get_betas(pulse, z))
+        self.betas[:] = fiber.get_betas(pulse, z)
         self._gamma = fiber.gamma(z)
         self.betas[:] = fftshift(self.betas)
 
-    def propagate_step(self, step: int, pulse: Pulse, fiber: FiberInstance, dz: float, direction: int = 1):
+    def propagate_step(self, step: int, pulse: Pulse, fiber: FiberInstance, dz: float, direction: int = 1, reload = False):
         """
         Propagate by one step (where n_steps does not equal 0)
 
         params:
         step: int = step number
         """
-        self.load_fiber_parameters(pulse, fiber)
+        if reload:
+            self.load_fiber_parameters(pulse, fiber, z=step*dz)
         self.integrate_over_dz(dz, direction)
         aw = ifftshift(self.FFT_t(self.a))
         at = ifftshift(self.a)
-        pulse.at = ifftshift(self.a)
+        pulse.at = at
         return aw, at, pulse
 
     def propagate(self, pulse: Pulse, fiber: FiberInstance, n_steps: int, *, output_power: float = 1.0, reload: bool = False, thread: bool = False):
@@ -306,13 +306,13 @@ class SSFM:
         self.load_fiber_parameters(pulse, fiber, float(z_pos[0]))
 
         for i in tqdm(range(n_steps)):
-            aw[:,i], at[:,i], pulse_out = self.propagate_step(i, pulse_out, fiber, delta_z)
+            aw[:,i], at[:,i], pulse_out = self.propagate_step(i, pulse_out, fiber, delta_z, reload=reload)
 
         #     # print ("Step:", i, "Distance remaining:", fiber.length * (1 - float(i)/n_steps) )
 
         #     # print ("Pulse energy after:", \
         #     #   1e9 * pulse_out.calc_epp(), 'nJ' )
-        pulse_out.at = ifftshift(self.a)
+        # pulse_out.at = at[:, -1]
 
         # print ( "Pulse energy after", fiber._fiber_type,":", \
         #       1e9 * pulse_out.calc_epp(), 'nJ' )
@@ -344,17 +344,17 @@ class SSFM:
 
     def FFT_t(self, A: np.ndarray) -> np.ndarray:
         if gv.PRE_FFTSHIFT:
-            return np.asarray(ifft(A))
+            return ifft(A)
         else:
-            return np.asarray(ifftshift(ifft(fftshift(A))))
+            return ifftshift(ifft(fftshift(A)))
     
     def FFT_t_shift(self, A: np.ndarray) -> np.ndarray:
-        return np.asarray(ifftshift(ifft(fftshift(A))))
+        return ifftshift(ifft(fftshift(A)))
     
     def IFFT_t(self, A: np.ndarray) -> np.ndarray:
         if gv.PRE_FFTSHIFT:
-            return np.asarray(fft(A))
-        return np.asarray(ifftshift(fft(fftshift(A))))
+            return fft(A)
+        return ifftshift(fft(fftshift(A)))
     
     def IFFT_t_shift(self, A: np.ndarray) -> np.ndarray:
-        return np.asarray(ifftshift(fft(fftshift(A))))
+        return ifftshift(fft(fftshift(A)))
