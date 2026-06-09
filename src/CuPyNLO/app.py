@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import CuPyNLO
+from simshelpers.util.bot import send_file, send_msg
+from simshelpers.database.database import Database
 
 app = Flask(__name__)
 
@@ -25,10 +27,13 @@ settings = {"dz": 1e-3,
             "pumpPulseLength": 28.4e-3,
             "nPoints": 2**13}
 
+ib64 = None
+
 class Server:
     def __init__(self):
         CORS(app)
         self._sio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
 
     @app.route("/")
     def index():
@@ -41,7 +46,7 @@ class Server:
     @app.route("/api/dudley_ssfm", methods=["GET"])
     def dudley_ssfm():
         def generate():
-            global settings
+            global settings, ib64
             def to_numpy(arr: Any) -> np.ndarray:
                 getter = getattr(arr, "get", None)
                 host_arr = getter() if callable(getter) else arr
@@ -49,7 +54,11 @@ class Server:
 
             step_info = ["Initialize", "Propagate", "Analyze", "Done"]
             step_idx = 0
-            
+
+            database = Database()
+
+            database.set_database("ssfm_simulations")
+
             while True:
                 if step_idx == 0:
                     pulse1 = CuPyNLO.light.DerivedPulses_v2.SechPulse(
@@ -191,6 +200,9 @@ class Server:
                             "step": step_info[step_idx],
                             "message": "Analysis complete"
                             }
+                    
+                    database.create_new_table("dudley_ssfm", table=data)
+
                     yield f"data: {flask.json.dumps(data)}\n\n"
                 elif step_idx == 3:
                     out = {
@@ -208,6 +220,22 @@ class Server:
         global settings
         settings = request.get_json()
         return settings
+    
+    @app.route("/api/dudley_ssfm/export", methods=["GET"])
+    def dudley_export():
+        global ib64
+        if ib64:
+            try:
+                send_file(ib64)
+                send_msg("image")
+                status = "sent"
+            except Exception as e:
+                print(f"Can't send file to bot: {e}")
+                status = "error"
+            return {"status": status}
+        else:
+            return {"status": "no image"}
+
 
 if __name__ == "__main__":
     server = Server()

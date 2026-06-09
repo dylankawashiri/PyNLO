@@ -151,6 +151,11 @@ export default function Test() {
                 <Button variant="contained" onClick={() => setEnable(!enable)}>Start</Button>
                 <p>Status: {status}</p>
                 <p>Time left: {timeLeft.toFixed(2)} seconds</p>
+                <Grid rowSpacing={2}>
+                    <Button variant="contained" onClick={() => {
+                        fetch("http://localhost:2048/api/dudley_ssfm/export");
+                    }}>Send to Discord</Button>
+                </Grid>
                 <Grid container rowSpacing={2} columnSpacing={2}>
                     {Object.entries(settings).map(([setting, value]) => 
                         <Grid size={3}>

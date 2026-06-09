@@ -80,7 +80,7 @@ class FiberInstance:
             self.x = self._fiber_specs["dispersion_x_data"]
             self.y = self._fiber_specs["dispersion_y_data"]
             return 1
-            
+
         elif self._fiber_specs["dispersion_format"] == "GVD":
             self.dispersion_gvd_units = self._fiber_specs["dispersion_gvd_units"]
             self._center_wavelength_nm = self._fiber_specs["dispersion_gvd_center_wavelength"]
@@ -90,7 +90,7 @@ class FiberInstance:
             return 1
         else:
             print( "Error: no dispersion found.")
-            return None   
+            return None
 
     def gamma(self, z: float = 0.0) -> float:
         if self.gamma_changes_with_z:
@@ -109,7 +109,7 @@ class FiberInstance:
         if self._length is None:
             raise ValueError("Length not set.")
         return self._length
-    
+
     @length.setter
     def length(self, val: float):
         self._length = val
